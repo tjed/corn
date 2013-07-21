@@ -123,7 +123,7 @@ function land.draw()
 
           -- shade to indicate ownership
           -- manor view
-          if land.mode == "manor" or land.view_open then
+          if land.mode == "manor" or (land.view_open and land.view_open.store) then
             if cur.manor then
               if land.mode == "manor" then
                 for i = 1, #game.landlords do
@@ -133,11 +133,28 @@ function land.draw()
                   end
                 end
               elseif land.view_open then
-                print("ya")
                 if cur.manor == land.view_open then
-                    love.graphics.setColor(0 , 0, 0, 50)
-                    love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-                end                  
+                  love.graphics.setColor(0 , 0, 0, 50)
+                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+                end 
+              end
+            end
+          end
+          -- shade to indicate town proximity
+          -- town view
+          if land.mode == "town" or (land.view_open and land.view_open.population) then
+            if land.mode == "town" then
+              for i = 1, #capitalist.towns do
+                if capitalist.towns[i]:check_distance(cur) then
+                  love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
+                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+                  break
+                end
+              end
+            elseif land.view_open then
+              if land.view_open:check_distance(cur) then
+                love.graphics.setColor(0 , 0, 0, 50)
+                love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
               end
             end
           end
@@ -194,26 +211,38 @@ function land.draw_gui()
   end
 
   love.graphics.setColor(0, 0, 0)
-
+  
   love.graphics.rectangle("fill", 0, 0, tile_width * display_w, 25)
   love.graphics.rectangle("fill", 0, tile_height * display_h - gui_shift, tile_width * display_w, 25)
   love.graphics.rectangle("fill", minimap_x - 5, minimap_y - 5, minimap_w + 5, minimap_h + 5)
   love.graphics.draw(minimap, minimap_x, minimap_y, 0, 5, 5, 0, 0)
   love.graphics.rectangle("line", minimap_x + ( display_x / 10), minimap_y + (display_y / 10), display_w * 5, (display_h * 5) - 5)
   love.graphics.rectangle("fill", minimap_x - 5, minimap_y - 20, 20, 15)
+  love.graphics.rectangle("fill", minimap_x + 25, minimap_y - 20, 20, 15)
+  love.graphics.setColorMode("modulate")
   if land.mode == "manor" then
     love.graphics.setColor(255, 0, 0)
     love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
     love.graphics.setColor(0, 0, 0)
   else
+    love.graphics.setColor(255, 255, 255)
     love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
+  end
+
+  if land.mode == "town" then
+    love.graphics.setColor(255, 0, 0)
+    love.graphics.print("T", minimap_x + 31, minimap_y - 17, 0, 1, 1, 0, 0)
+    love.graphics.setColor(0, 0, 0)
+  else
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.print("T", minimap_x + 31, minimap_y - 17, 0, 1, 1, 0, 0)
   end
 
   love.graphics.setColor(255, 0, 0)
   love.graphics.rectangle("fill", 0, 0, season.time / season.length[game.season] * 100, 25 )
 
   love.graphics.setColor(255, 255, 255)
-  love.graphics.setColorMode("modulate")
+  
   if not game.paused then
     love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
   else 
@@ -342,6 +371,8 @@ function land.update( dt )
         land.hover = nil
         if (t_y > minimap_y - 20 and t_x > minimap_x - 5) and (t_y < minimap_y and t_x < minimap_x + 15) then
           land.mode = "manor"
+        elseif (t_y > minimap_y - 20 and t_x > minimap_x + 25) and (t_y < minimap_y and t_x < minimap_x + 45) then
+          land.mode = "town"
         else
           land.mode = nil
         end
