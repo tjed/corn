@@ -1,13 +1,13 @@
 -- corn by yarlesp
 -- pl development 2013
 
-land = {  map = {},           -- current map
-          hover = nil,        -- tile under the player's cursor
-          start_focus = nil,  -- where to start drawing land as if it were selected
-          end_focus = nil,    -- where to end
-          erase = true,       -- whether or not to overwrite the start_drag and end_drag
-          view_open = false,  -- whether or not a view of a town or manor or whatever is open      
-          mode = nil}         -- mapmode. manor view, labor radius view, whatever
+land = {  map = {},                     -- current map
+          hover = nil,                  -- tile under the player's cursor
+          start_focus = nil,            -- where to start drawing land as if it were selected
+          end_focus = nil,              -- where to end
+          erase = true,                 -- whether or not to overwrite the start_drag and end_drag
+          view_open = nil,              -- whether or not a view of a town or manor or whatever is open      
+          mode = nil}                   -- mapmode. manor view, labor radius view, whatever
 
 local display_y = 0   -- the exact pixels, on the abstract map, at which we're starting the render cycle, e.g. 0, 0 if we're in the extreme upper left corner
 local display_x = 0
@@ -123,13 +123,21 @@ function land.draw()
 
           -- shade to indicate ownership
           -- manor view
-          if land.mode == "manor" then
+          if land.mode == "manor" or land.view_open then
             if cur.manor then
-              for i = 1, #game.landlords do
-                if cur.manor.owner == game.landlords[i] then
-                  love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
-                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+              if land.mode == "manor" then
+                for i = 1, #game.landlords do
+                  if cur.manor.owner == game.landlords[i] then
+                    love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
+                    love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+                  end
                 end
+              elseif land.view_open then
+                print("ya")
+                if cur.manor == land.view_open then
+                    love.graphics.setColor(0 , 0, 0, 50)
+                    love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+                end                  
               end
             end
           end
@@ -255,7 +263,7 @@ function land.draw_gui()
           capitalist.towns[i].selected = false
         end
         l.selected = true
-        land.view_open = true
+        land.view_open = l
       elseif l.t == "water" then
         love.graphics.print("water", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "port" then
@@ -273,7 +281,7 @@ function land.draw_gui()
           end
         end
         l.selected = true
-        land.view_open = true
+        land.view_open = l
       end
     end
   end
@@ -329,9 +337,10 @@ function land.update( dt )
       if not(t_y > minimap_y - 20 and t_x > minimap_x) then
         land.hover = land.map[y][x]
         land.map[y][x].hover = true
+        land.mode = nil
       else
         land.hover = nil
-        if (t_y > minimap_y - 20 and t_x > minimap_x - 5) and (t_y > minimap_y - 20 and t_x < minimap_x + 15) then
+        if (t_y > minimap_y - 20 and t_x > minimap_x - 5) and (t_y < minimap_y and t_x < minimap_x + 15) then
           land.mode = "manor"
         else
           land.mode = nil
@@ -348,7 +357,7 @@ function land.update( dt )
           game.landlords[i].manors[j].selected = false
         end
       end
-      land.view_open = false
+      land.view_open = nil
     elseif love.mouse.isDown("l") then
       if t_y > minimap_y - 20 and t_x > minimap_x  then -- minimap
         t_y = ( ( t_y - minimap_y ) / 5 ) - (display_h / 2) -- places the minimap click in the right scale, and centers the map display on the click
