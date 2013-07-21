@@ -6,7 +6,8 @@ land = {  map = {},           -- current map
           start_focus = nil,  -- where to start drawing land as if it were selected
           end_focus = nil,    -- where to end
           erase = true,       -- whether or not to overwrite the start_drag and end_drag
-          view_open = false } -- whether or not a view of a town or manor or whatever is open      
+          view_open = false,  -- whether or not a view of a town or manor or whatever is open      
+          mode = nil}         -- mapmode. manor view, labor radius view, whatever
 
 local display_y = 0   -- the exact pixels, on the abstract map, at which we're starting the render cycle, e.g. 0, 0 if we're in the extreme upper left corner
 local display_x = 0
@@ -109,6 +110,7 @@ function land.draw()
             end
           end
 
+          -- shade to indicate status
           if cur.activity.improving then -- red for investment
             love.graphics.setColor(255, 0, 0, 50 * math.abs(math.sin(inter)))
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
@@ -117,6 +119,19 @@ function land.draw()
             love.graphics.setColor(0, 255, 0, 50 * math.abs(math.cos(inter)))
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
             love.graphics.setColor(255, 255, 255)
+          end
+
+          -- shade to indicate ownership
+          -- manor view
+          if land.mode == "manor" then
+            if cur.manor then
+              for i = 1, #game.landlords do
+                if cur.manor.owner == game.landlords[i] then
+                  love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
+                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+                end
+              end
+            end
           end
           love.graphics.setColor(255, 255, 255) 
           elseif cur.t == "swamp" then
@@ -178,7 +193,13 @@ function land.draw_gui()
   love.graphics.draw(minimap, minimap_x, minimap_y, 0, 5, 5, 0, 0)
   love.graphics.rectangle("line", minimap_x + ( display_x / 10), minimap_y + (display_y / 10), display_w * 5, (display_h * 5) - 5)
   love.graphics.rectangle("fill", minimap_x - 5, minimap_y - 20, 20, 15)
-  love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
+  if land.mode == "manor" then
+    love.graphics.setColor(255, 0, 0)
+    love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
+    love.graphics.setColor(0, 0, 0)
+  else
+    love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
+  end
 
   love.graphics.setColor(255, 0, 0)
   love.graphics.rectangle("fill", 0, 0, season.time / season.length[game.season] * 100, 25 )
@@ -305,8 +326,17 @@ function land.update( dt )
     local t_x = love.mouse.getX()
     local t_y = love.mouse.getY()
     if land.map[y] and land.map[y][x] and not love.mouse.isDown("l") then
-      land.hover = land.map[y][x]
-      land.map[y][x].hover = true
+      if not(t_y > minimap_y - 20 and t_x > minimap_x) then
+        land.hover = land.map[y][x]
+        land.map[y][x].hover = true
+      else
+        land.hover = nil
+        if (t_y > minimap_y - 20 and t_x > minimap_x - 5) and (t_y > minimap_y - 20 and t_x < minimap_x + 15) then
+          land.mode = "manor"
+        else
+          land.mode = nil
+        end
+      end
     end
     if love.mouse.isDown("r") then
       land.start_focus, land.end_focus = nil, nil

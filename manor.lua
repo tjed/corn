@@ -9,7 +9,7 @@ manor = { 	owner = nil,
 manor.__index = manor
 
 function manor.new(loc)
-	o = { loc = loc, store = math.random(10), guards = math.random(5) }
+	o = { loc = loc, store = math.random(10), guards = math.random(5), owner = nil }
 	setmetatable(o, manor)
 	return o
 end
