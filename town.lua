@@ -12,11 +12,17 @@ town = { 	population = {},	-- pops, mix of workers and peasants
 
 town.__index = town
 
-function town.new(nom, location)
-	local o = {}
+function town.new(location)
+	local o = {loc = location}
 	setmetatable(o, town)
-	o.loc = location
-	o.name = nom
+	local named = false
+	while not named do -- not that effecient but it works
+		o.name = place_names[math.random(#place_names)]
+		named = true
+		for i = 1, #capitalist.towns do
+			if o.name == capitalist.towns[i].name then named = false end
+		end
+	end
 	o.population = {}
 	o.available = true
 	o.poor_house = false
@@ -61,7 +67,7 @@ end
 -- note that if there's a rail network radius is irrelevant
 -- side fx: none
 function town:check_distance(from)
-	return game.rail_network or math.sqrt( (from.loc[1] - self.loc[1])^2 + (from.loc[2] - self.loc[2])^2 ) < self.radius
+	return not from.loc or game.rail_network or math.sqrt( (from.loc[1] - self.loc[1])^2 + (from.loc[2] - self.loc[2])^2 ) < self.radius
 end
 
 -- takes a town, implicitly

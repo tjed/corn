@@ -54,7 +54,8 @@ function love.load()
               port =    love.graphics.newQuad(50, 100, 50, 50, 200, 200),
               manor =   love.graphics.newQuad(0, 100, 50, 50, 200, 200),
               garrison =nil, --TODO
-              factory = nil --TODO
+              factory = nil, --TODO
+              fog =     love.graphics.newQuad(50, 150, 50, 50, 200, 200)
             }
 
   c_sheet = love.graphics.newImage("img/pops_small.bmp") -- refers to classes, below
@@ -85,6 +86,12 @@ function love.load()
 
   for line in love.filesystem.lines("data/names_low.txt") do
     table.insert(low_names, line)
+  end
+
+  place_names = {}
+
+  for line in love.filesystem.lines("data/names_place.txt") do
+    table.insert(place_names, line)
   end
 
   -- load all the maps

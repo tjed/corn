@@ -44,20 +44,20 @@ function land.load()
     for x = 1, width do
       local z = land.get_type( maps[current_map]:getPixel(x - 1, y - 1) )
       if z == "town" then 
-        land.map[y][x] = town.new( "sometown"..x..y, {x, y} )
+        land.map[y][x] = town.new( {x, y} )
         land.map[y][x]:populate(math.random(game.options.max_pop))
         game.population = game.population + #land.map[y][x].population
         capitalist.towns[#capitalist.towns + 1] = land.map[y][x]
       elseif z == "capital" then
         land.map[y][x] = { t = z, focus = false}
       elseif z == "forest" then
-        land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, manor = nil, focus = false, to_improve = 6}
+        land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, manor = nil, focus = false, to_improve = 6, loc = {x, y}}
       elseif z == "road" then
-        land.map[y][x] = { t = z, blocked = false, focus = false}
+        land.map[y][x] = { t = z, blocked = false, focus = false, manor = nil, loc = {x, y} }
       elseif z == "water" then
         land.map[y][x] = { t = z , focus = false}
       elseif z == "swamp" then
-        land.map[y][x] = { t = z, depth = 2, draining = false, focus = false, to_improve = 6}
+        land.map[y][x] = { t = z, depth = 2, draining = false, focus = false, to_improve = 6, manor = nil}
       elseif z == "manor" then
         land.map[y][x] = manor.new( {x, y} )
         land.map[y][x].owner = landlord.new( land.map[y][x] )
@@ -72,7 +72,7 @@ function land.load()
   -- assign land
   for y = 1, height do
     for x = 1, width do
-      if land.map[y][x].fertility or land.map[y][x].t == "forest" or land.map[y][x].t == "swamp" then
+      if land.map[y][x].fertility or land.map[y][x].t == "forest" or land.map[y][x].t == "swamp" or land.map[y][x].t == "road" then
         land.map[y][x].manor = landlord.check_distance(x, y)
       end 
     end 
@@ -98,19 +98,75 @@ function land.draw()
 
         -- handing tile drawing in the case of fields
         -- first draw the appropriate field, then shade it to indicate its status
-        if cur.fertility then
-          if cur.fertility > 4 then love.graphics.drawq( t_sheet, terrain.high, draw_x, draw_y )
-          elseif cur.fertility > 2 then love.graphics.drawq( t_sheet, terrain.low, draw_x, draw_y ) 
-          else love.graphics.drawq( t_sheet, terrain.waste, draw_x, draw_y ) end
-          if land.start_focus and land.end_focus then
-            if first_y + y >= math.min(land.start_focus[2], land.end_focus[2]) and first_x + x >= math.min(land.start_focus[1], land.end_focus[1]) and first_y + y <= math.max(land.end_focus[2], land.start_focus[2]) and first_x + x <= math.max(land.end_focus[1], land.start_focus[1]) then
-              love.graphics.setColor(0, 0, 255, 50 * math.abs(math.sin(inter)))
-              love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-              love.graphics.setColor(255, 255, 255)
+        if cur.t == "swamp" then
+          love.graphics.drawq( t_sheet, terrain.swamp, draw_x, draw_y )
+        elseif cur.population then -- if the tile has population then its a town
+          love.graphics.drawq( t_sheet, terrain.town, draw_x, draw_y )
+        elseif cur.t == "road" then love.graphics.drawq( t_sheet, terrain.road, draw_x, draw_y )
+        elseif cur.t == "water" then love.graphics.drawq( t_sheet, terrain.water, draw_x, draw_y )
+        elseif cur.t == "forest" then love.graphics.drawq( t_sheet, terrain.forest, draw_x, draw_y )
+        elseif cur.t == "port" then love.graphics.drawq( t_sheet, terrain.port, draw_x, draw_y )
+        elseif cur.store then love.graphics.drawq( t_sheet, terrain.manor, draw_x, draw_y )
+        elseif cur.fertility then           
+          if cur.fertility > 4 then 
+            love.graphics.drawq( t_sheet, terrain.high, draw_x, draw_y )
+          elseif 
+            cur.fertility > 2 then love.graphics.drawq( t_sheet, terrain.low, draw_x, draw_y ) 
+          else 
+            love.graphics.drawq( t_sheet, terrain.waste, draw_x, draw_y ) 
+          end
+        end
+
+        -- draw selected
+        if land.start_focus and land.end_focus then
+          if first_y + y >= math.min(land.start_focus[2], land.end_focus[2]) and first_x + x >= math.min(land.start_focus[1], land.end_focus[1]) and first_y + y <= math.max(land.end_focus[2], land.start_focus[2]) and first_x + x <= math.max(land.end_focus[1], land.start_focus[1]) then
+            love.graphics.setColor(0, 0, 255, 50 * math.abs(math.sin(inter)))
+            love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+            love.graphics.setColor(255, 255, 255)
+          end
+        end
+
+        -- shade to indicate ownership
+        -- manor view
+        if land.mode == "manor" or (land.view_open and land.view_open.store) then
+          if cur.manor then
+            if land.mode == "manor" then
+              for i = 1, #game.landlords do
+                if cur.manor.owner == game.landlords[i] then
+                  love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 0 + (i * (255 / #game.landlords)), 100)
+                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+                end
+              end
+            elseif land.view_open then
+              if cur.manor ~= land.view_open then
+                love.graphics.setColor(0 , 0, 0, 100)
+                love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+              end 
             end
           end
+        end
 
-          -- shade to indicate status
+        -- shade to indicate town proximity
+        -- town view
+        if land.mode == "town" or (land.view_open and land.view_open.population) then
+          if land.mode == "town" then
+            for i = 1, #capitalist.towns do
+              if cur.loc and capitalist.towns[i]:check_distance(cur) then
+                love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
+                love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+              end
+            end
+          elseif land.view_open then
+            if not land.view_open:check_distance(cur) then
+              love.graphics.setColor(0 , 0, 0, 100)
+              love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+            end
+          end
+        end
+
+        love.graphics.setColor(255, 255, 255) 
+        -- shade to indicate status
+        if cur.fertility then
           if cur.activity.improving then -- red for investment
             love.graphics.setColor(255, 0, 0, 50 * math.abs(math.sin(inter)))
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
@@ -120,54 +176,6 @@ function land.draw()
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
             love.graphics.setColor(255, 255, 255)
           end
-
-          -- shade to indicate ownership
-          -- manor view
-          if land.mode == "manor" or (land.view_open and land.view_open.store) then
-            if cur.manor then
-              if land.mode == "manor" then
-                for i = 1, #game.landlords do
-                  if cur.manor.owner == game.landlords[i] then
-                    love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
-                    love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-                  end
-                end
-              elseif land.view_open then
-                if cur.manor == land.view_open then
-                  love.graphics.setColor(0 , 0, 0, 50)
-                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-                end 
-              end
-            end
-          end
-          -- shade to indicate town proximity
-          -- town view
-          if land.mode == "town" or (land.view_open and land.view_open.population) then
-            if land.mode == "town" then
-              for i = 1, #capitalist.towns do
-                if capitalist.towns[i]:check_distance(cur) then
-                  love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
-                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-                  break
-                end
-              end
-            elseif land.view_open then
-              if land.view_open:check_distance(cur) then
-                love.graphics.setColor(0 , 0, 0, 50)
-                love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-              end
-            end
-          end
-          love.graphics.setColor(255, 255, 255) 
-          elseif cur.t == "swamp" then
-            love.graphics.drawq( t_sheet, terrain.swamp, draw_x, draw_y )
-          elseif cur.population then -- if the tile has population then its a town
-            love.graphics.drawq( t_sheet, terrain.town, draw_x, draw_y )
-          elseif cur.t == "road" then love.graphics.drawq( t_sheet, terrain.road, draw_x, draw_y )
-          elseif cur.t == "water" then love.graphics.drawq( t_sheet, terrain.water, draw_x, draw_y )
-          elseif cur.t == "forest" then love.graphics.drawq( t_sheet, terrain.forest, draw_x, draw_y )
-          elseif cur.t == "port" then love.graphics.drawq( t_sheet, terrain.port, draw_x, draw_y )
-          elseif cur.store then love.graphics.drawq( t_sheet, terrain.manor, draw_x, draw_y )
         end
       end
 		end
