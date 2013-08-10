@@ -15,46 +15,14 @@ capitalist = {	name = "Mr. soandso",
 
 function capitalist.update()
 	if capitalist.agricultural then
-		-- if you leave a plot invested or planted from one season to the next it just takes the crap out automatically the next season
-		-- also capital comes out only in the spring, and wages are paid in the fall. 
-		-- this means that capitalists could conceivably have no corn to pay their workers
-		if game.season == 1 then
-			local i = 1
-			while capitalist.fields[i] do
-
-				local function remove_field()
-					print("called on "..capitalist.fields[i].loc[1].." "..capitalist.fields[i].loc[2])
-					local j = 1
-					while capitalist.employed_ag[j] do
-						if capitalist.fields[i].worker == capitalist.employed_ag[j] then
-							capitalist.fields[i].worker.utilization = capitalist.fields[i].worker.utilization - capitalist.fields[i].intensity.l
-							capitalist.fields[i].worker.available = true
-							if capitalist.fields[i].worker.utilization <= 0 then
-								capitalist.fields[i].worker.utilization = 0
-								table.remove(capitalist.employed_ag, j)
-							end
-						end
-						j = j + 1
-					end
-					table.remove(capitalist.fields, i)
-				end 
-
-				if capitalist.fields[i].activity.planting and capitalist.fortune > capitalist.fields[i].intensity.k then
-					capitalist.fortune = capitalist.fortune - (capitalist.fields[i].intensity.k)
-				elseif capitalist.fields[i].activity.planting and capitalist.fortune < capitalist.fields[i].intensity.k then
-					capitalist.fields[i].activity.planting = false
-					remove_field()
-				end
-
-				if capitalist.fields[i].activity.improving and capitalist.fortune > (capitalist.fields[i].intensity.k * capitalist.fields[i].to_improve) then  
-					capitalist.fortune = capitalist.fortune - (capitalist.fields[i].intensity.k * capitalist.fields[i].to_improve)
-				elseif capitalist.fields[i].activity.improving and capitalist.fortune < (capitalist.fields[i].intensity.k * capitalist.fields[i].to_improve) then
-					capitalist.fields[i].activity.improving = false
-					remove_field()
-				end
-				i = i + 1
+		-- capital and labor must be allocated every spring
+		-- nothing stays over from year to year
+		if game.season == 4 then -- winter (i.e. right before the new year)
+			for i = 1, #capitalist.fields do
+				capitalist.fields[i]:update()
 			end
-
+			capitalist.fields, capitalist.employed_ind, capitalist.employed_ag = {}, {}, {}
+			employed = #capitalist.employed_ag + #capitalist.employed_ind
 		elseif game.season == 3 then -- fall
 			for i = 1, #capitalist.fields do
 				capitalist.fortune = capitalist.fortune - game.rent_rate -- rent
@@ -111,14 +79,14 @@ function capitalist.keypressed( key )
 					for i = 1, #capitalist.employed_ag do
 						if capitalist.employed_ag[i] == l.worker then
 							l.worker.utilization = l.worker.utilization + l.intensity.l
-							if l.worker.utilization >= 1 then l.worker.available = false end 
+							if l.worker.utilization >= game.labor_per then l.worker.available = false end 
 							already_working = true
 						end
 					end
 					if not already_working then 
 						capitalist.employed_ag[#capitalist.employed_ag + 1] = l.worker
 						l.worker.utilization = l.worker.utilization + l.intensity.l
-						if l.worker.utilization >= 1 then l.worker.available = false end 
+						if l.worker.utilization >= game.labor_per then l.worker.available = false end 
 					end
 				end
 
@@ -129,14 +97,12 @@ function capitalist.keypressed( key )
 							local j = 1
 							while capitalist.employed_ag[j] do
 								if l.worker == capitalist.employed_ag[j] then
-									print("before: "..l.worker.utilization)
 									l.worker.utilization = l.worker.utilization - l.intensity.l
 									l.worker.available = true
 									if l.worker.utilization - .01 <= 0 then -- 1/3 + 1/3 + 1/3 - 1/3 - 1/3 - 1/3 doesn't actually equal zero in lua. 
 										l.worker.utilization = 0
 										table.remove(capitalist.employed_ag, j)
 									end
-									print("after: "..l.worker.utilization)
 								end
 								j = j + 1
 							end

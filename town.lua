@@ -7,7 +7,7 @@ town = { 	population = {},	-- pops, mix of workers and peasants
 			loc = {0, 0},		-- location of the town on the map
 			radius = 5,			-- how far labor is allowed to travel from the town
 			available = true,	-- if over 50% of the village is starving then they start to riot
-			poor_house = false	-- whether or not there's a poor house in town. farmers can only go on relief if they live in a town with a poor house
+			poor_house = true	-- whether or not there's a poor house in town. farmers can only go on relief if they live in a town with a poor house
 		}
 
 town.__index = town
@@ -25,7 +25,8 @@ function town.new(location)
 	end
 	o.population = {}
 	o.available = true
-	o.poor_house = false
+	o.poor_house = true
+	table.insert(game.towns, o)
 	return o
 end
 
@@ -48,7 +49,7 @@ function town:update()
 			angry = angry + 1
 		end
 	end
-	self.available = (angry / self.population) < .3
+	self.available = (angry / #self.population) < .3
 end
 
 -- takes a town implicitly

@@ -65,6 +65,8 @@ function land.load()
         land.map[y][x] = {t = z, focus = false, open = game.tariff }
       elseif type(z) == "number" then 
         land.map[y][x] = field.new( z, {x, y} )
+        if z > game.high_fertility then game.high_fertility = z end 
+        if z < game.low_fertility then game.low_fertility = z end
       end
     end
   end
@@ -164,14 +166,26 @@ function land.draw()
           end
         end
 
+        -- shade to indicate fertility
+        -- fertility view
+        if land.mode == "fertility" and cur.fertility then
+          love.graphics.setColor(0, (cur.fertility - game.low_fertility) / (game.high_fertility - game.low_fertility) * 255, 0, 50)
+          love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+          love.graphics.setColor(0, 0, 0)
+          love.graphics.print(cur.fertility, draw_x + 20, draw_y + 10, 0, 2, 2, 0, 0)
+        end
+
         love.graphics.setColor(255, 255, 255) 
+
         -- shade to indicate status
+        -- red for investment
+        -- green for planting
         if cur.fertility then
-          if cur.activity.improving then -- red for investment
+          if cur.activity.improving then
             love.graphics.setColor(255, 0, 0, 50 * math.abs(math.sin(inter)))
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
             love.graphics.setColor(255, 255, 255)
-          elseif cur.activity.planting then -- green for planting
+          elseif cur.activity.planting then
             love.graphics.setColor(0, 255, 0, 50 * math.abs(math.cos(inter)))
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
             love.graphics.setColor(255, 255, 255)
@@ -227,10 +241,13 @@ function land.draw_gui()
   love.graphics.rectangle("line", minimap_x + ( display_x / 10), minimap_y + (display_y / 10), display_w * 5, (display_h * 5) - 5)
   love.graphics.rectangle("fill", minimap_x - 5, minimap_y - 20, 20, 15)
   love.graphics.rectangle("fill", minimap_x + 25, minimap_y - 20, 20, 15)
+  love.graphics.rectangle("fill", minimap_x + 55, minimap_y - 20, 20, 15)
   love.graphics.setColorMode("modulate")
+
   if land.mode == "manor" then
-    love.graphics.setColor(255, 0, 0)
-    love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.print("Manor View", minimap_x + 1, minimap_y - 17, math.pi / -6, 1.2, 1.2, 0, 0)
+    --love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
     love.graphics.setColor(0, 0, 0)
   else
     love.graphics.setColor(255, 255, 255)
@@ -238,28 +255,28 @@ function land.draw_gui()
   end
 
   if land.mode == "town" then
-    love.graphics.setColor(255, 0, 0)
-    love.graphics.print("T", minimap_x + 31, minimap_y - 17, 0, 1, 1, 0, 0)
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.print("Town View", minimap_x + 31, minimap_y - 17, math.pi / -6, 1.2, 1.2, 0, 0)
     love.graphics.setColor(0, 0, 0)
   else
     love.graphics.setColor(255, 255, 255)
     love.graphics.print("T", minimap_x + 31, minimap_y - 17, 0, 1, 1, 0, 0)
   end
 
+  if land.mode == "fertility" then
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.print("Fertility View", minimap_x + 61, minimap_y - 17, math.pi / -6, 1.2, 1.2, 0, 0)
+    love.graphics.setColor(0, 0, 0)
+  else
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.print("F", minimap_x + 61, minimap_y - 17, 0, 1, 1, 0, 0)
+  end
+
   love.graphics.setColor(255, 0, 0)
-  love.graphics.rectangle("fill", 0, 0, season.time / season.length[game.season] * 100, 25 )
 
   love.graphics.setColor(255, 255, 255)
   
-  if not game.paused then
-    love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
-  else 
-    if math.sin(inter * 2) > 0 then
-      love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
-    else
-      love.graphics.printf("-- paused --", 5, 5, 90, "right")
-    end
-  end
+  love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
 
   love.graphics.setColor(255, 255, 255)
   love.graphics.print("Corn: "..math.floor(capitalist.fortune), 110, 5, 0, 1, 1, 0, 0)
@@ -381,6 +398,8 @@ function land.update( dt )
           land.mode = "manor"
         elseif (t_y > minimap_y - 20 and t_x > minimap_x + 25) and (t_y < minimap_y and t_x < minimap_x + 45) then
           land.mode = "town"
+        elseif (t_y > minimap_y - 20 and t_x > minimap_x + 55) and (t_y < minimap_y and t_x < minimap_x + 75) then
+          land.mode = "fertility"
         else
           land.mode = nil
         end

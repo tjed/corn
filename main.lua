@@ -17,11 +17,8 @@ require "parliament"  -- where we go to debate lawes
 require "manor"       -- where landlords live and where their stash is
 require "town"        -- where pops (farmers) live
 require "field"       -- individual productive (agricultural) tiles
-require "farm"        -- farms are made of fields
 
 require "sraffian_model"
-
-gui = require 'gui'
 
 --local profiler = require "ProFi" --debug
 

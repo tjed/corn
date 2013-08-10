@@ -18,6 +18,7 @@ function farmer:new( l )
 			utilization = 0,
 			savings = 1 }
 	setmetatable(o, farmer)
+	table.insert(game.farmers, o)
 	return o
 end
 
@@ -25,11 +26,15 @@ end
 -- doesn't return anything
 -- side fx: on the farmer
 function farmer:update()
-	self.savings = self.savings - 1 -- *chomp*
-	if self.available and not relief and land.get_tile(loc).poor_house then
-		self.relief = true
+	if game.season == 3 then
+		self.savings = self.savings - 1 -- *chomp*
+		if self.available and not relief and land.get_tile(self.loc).poor_house then
+			self.relief = true
+		end
+		if self.relief then self.savings = self.savings + 1 end
+		self.available = true
+		self.utilization = 0
 	end
-	if self.relief then self.savings = self.savings + 1 end
 end
 
 function farmer:to_string()

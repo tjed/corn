@@ -18,9 +18,9 @@ function player.update( key )
 		return
 	end
 
-	-- pause, 
-	if key == "pause" then
-		game.paused = not game.paused
+	-- skip to next turn 
+	if key == "return" then
+		game.change_season()
 		return
 	end
 
@@ -30,11 +30,12 @@ function player.update( key )
 		else current_map = 1 end
 		land.load()
 		capitalist.fortune, capitalist.employed_ag, capitalist.employed_ind = 10, {}, {}
-		game.year, game.season, season.time = 1803, 1, 0
+		game.year, game.season = 1803, 1
 		return
 	end
 
-	if key == "d" then -- toggle d-cay
+	-- toggle d-cay
+	if key == "d" then 
 		game.options.decay = not game.options.decay
 		return
 	end

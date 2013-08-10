@@ -16,10 +16,11 @@ d - toggle decay, as in, every time a tile is planted above normal (1/3) capital
 
 overall controls:
 
+enter - end turn (spring, summer, fall, winter)
+
 up, down, left, right - scroll map. click on minimap to jump to that spot
 l - toggle parliament view
 
-pause - pause,
 esc - exit
 
 debug stuff:
