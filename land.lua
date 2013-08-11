@@ -424,9 +424,13 @@ function land.update( dt )
       elseif land.view_open and land.start_focus then
         --if land.start_focus < 
       elseif not land.view_open and not land.start_focus or land.erase then
+        if x > width then x = width end 
+        if y > height  then y = height end 
         land.start_focus = { x, y }
         land.erase = false
       elseif land.start_focus then
+        if x > width then x = width end 
+        if y > height  then y = height end 
         land.end_focus = { x, y }
       end
     elseif not love.mouse.isDown("l") then
