@@ -1,13 +1,14 @@
 -- corn by yarlesp
 -- pl development 2013
 
-town = { 	population = {},	-- pops, mix of workers and peasants
-			owner = nil,		-- capitalist, or, nobody...
-			name = "sometown",	-- duh
-			loc = {0, 0},		-- location of the town on the map
-			radius = 5,			-- how far labor is allowed to travel from the town
-			available = true,	-- if over 50% of the village is starving then they start to riot
-			poor_house = true	-- whether or not there's a poor house in town. farmers can only go on relief if they live in a town with a poor house
+town = { 	population = {},		-- pops, mix of workers and peasants
+			urban = false,			-- whether or not it's a city. if it is maxpop is way larger and factories can be built there. and everyone turns into a worker. 
+			owner = nil,			-- capitalist, or, nobody...
+			name = "sometown",		-- duh
+			loc = {0, 0},			-- location of the town on the map
+			radius = 5,				-- how far labor is allowed to travel from the town
+			available = true,		-- if over 50% of the village is starving then they start to riot
+			poor_house = {true, 0}	-- first value is whether or not there is a poor house. second value is the amount of corn it has to share out
 		}
 
 town.__index = town
@@ -95,4 +96,19 @@ function town:has_labor(amt)
 		end
 	end
 	return false
+end
+
+
+-- makes a town a city
+-- raises its 
+function town:to_city()
+
+end
+
+-- takes a town implicitly
+-- doesn't return anything
+-- spawns a new town in a random direction from the old one, with a bias towards expanding next to a third town
+-- hopefully this causes expansion in concentric circles?? if max_pop is high enough it should take a super long time to get a town that big
+function town:expand()
+
 end

@@ -7,6 +7,7 @@ game = {season = 1, 								-- season: 1 = spring, 2 = summer, 3 = fall, 4 = win
 		tariff = true, 								-- whether or not we can import corn
 		ten_hour_bill = false,						-- whether or not the working day is unrestricted
 		wage_rate = 1, 								-- all three, profit, wages, and rent, are determined at the same time at the end of the season.
+		needs = .8,									-- how much each family needs, at minimum, to survive.
 		labor_per = 1,								-- how much labor each pop has available. 1 = ten hours, let's say
 		profit_rate = 1,							-- p/h
 		rent_rate = 1,								-- p/h

@@ -27,13 +27,14 @@ end
 -- side fx: on the farmer
 function farmer:update()
 	if game.season == 3 then
-		self.savings = self.savings - 1 -- *chomp*
-		if self.available and not relief and land.get_tile(self.loc).poor_house then
-			self.relief = true
-		end
+		self.savings = self.savings - game.needs -- *chomp*
 		if self.relief then self.savings = self.savings + 1 end
 		self.available = true
 		self.utilization = 0
+	elseif game.season == 2 then
+		if self.available and not relief and land.get_tile(self.loc).poor_house then
+			self.relief = true
+		end
 	end
 end
 
@@ -45,7 +46,7 @@ function farmer:to_string()
 		to = to..", working "..math.floor((self.utilization / 1 * 100)).."%"
 	elseif self.relief then 
 		to = to..", on relief" 
-	elseif not self.relief and self.available and self.savings < 1 then
+	elseif not self.relief and self.available and self.savings < game.needs then
 		to = to..", starving"
 	end
 	return to
