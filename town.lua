@@ -8,7 +8,8 @@ town = { 	population = {},		-- pops, mix of workers and peasants
 			loc = {0, 0},			-- location of the town on the map
 			radius = 5,				-- how far labor is allowed to travel from the town
 			available = true,		-- if over 50% of the village is starving then they start to riot
-			poor_house = {true, 0}	-- first value is whether or not there is a poor house. second value is the amount of corn it has to share out
+			poor_house = {true, 0},	-- first value is whether or not there is a poor house. second value is the amount of corn it has to share out
+			part_of = nil			-- the city the town is part of (if any)
 		}
 
 town.__index = town
@@ -43,6 +44,9 @@ end
 
 -- called once at the end of the season
 -- if people are starving the town will enter riot mode!
+-- if people are happy another family will form. 
+-- if the town has reached its maximum population it will form a city
+-- unless it's already part of a city in which case the city handles the expansion
 function town:update()
 	local angry = 0
 	for i = 1, #self.population do
@@ -51,6 +55,15 @@ function town:update()
 		end
 	end
 	self.available = (angry / #self.population) < .3
+	if game.season == 3 then 
+		if self.available and #self.population < game.options.max_pop then 
+			self:populate()
+		elseif self.available and #self.population >= game.options.max_pop then
+			if not self.part_of then
+				self:to_city()
+			end
+		end
+	end
 end
 
 -- takes a town implicitly
@@ -98,17 +111,7 @@ function town:has_labor(amt)
 	return false
 end
 
-
 -- makes a town a city
--- raises its 
 function town:to_city()
-
-end
-
--- takes a town implicitly
--- doesn't return anything
--- spawns a new town in a random direction from the old one, with a bias towards expanding next to a third town
--- hopefully this causes expansion in concentric circles?? if max_pop is high enough it should take a super long time to get a town that big
-function town:expand()
-
+	table.insert( game.cities, city.new(self) )
 end

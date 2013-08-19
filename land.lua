@@ -469,6 +469,15 @@ function land.get_type( r, g, b )  -- alpha ignored, for now. idk what its purpo
   end
 end
 
+-- helper functions
+
+-- obvs
 function land.get_tile( loc )
   return land.map[loc[2]][loc[1]]
+end
+
+-- also obvs
+-- this probably doesn't even have to be in the land file. lol
+function land.get_distance(from, to)
+  return math.sqrt( math.abs(from.loc[1] - to.loc[1]) + math.abs(from.loc[2] - to.loc[2]) )
 end
