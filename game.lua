@@ -18,8 +18,7 @@ game = {season = 1, 								-- season: 1 = spring, 2 = summer, 3 = fall, 4 = win
 		capital_tech = 1,							-- higher values reduce capital intensity in agriculture
 		rail_network = false,						-- a rail network allows farmers/workers to migrate or work anywhere. invalidates the 'radius' thing
 		options = { decay = false, 					-- whether or not improved land decays at a uniform (5%/year) rate
-					max_pop = 5,					-- maximum amt of pops in a town before it expands
-					farm_size = 8 }, 				-- maximum size of an indivdual farm (in fields)
+					max_pop = 4 },					-- maximum amt of pops in a town before it expands
 		workers = {},								-- all workers
 		farmers = {},								-- all farmers
 		landlords = {},								-- all landlords

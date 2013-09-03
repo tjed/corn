@@ -206,12 +206,11 @@ function land.draw_gui()
       local draw_y = (l.loc[2] - first_y - 1) * tile_height - offset_y + gui_shift
       love.graphics.setColor(0, 0, 0)
       love.graphics.rectangle("line", draw_x, draw_y, 50, 50)
-      love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 190, #l.population * 35)
+      love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 220, 60)
       love.graphics.setColor(255, 255, 255)
-      for i = 1, #l.population do
-        love.graphics.print(l.population[i]:to_string(), draw_x + (tile_width/2) + 20, draw_y + ( (tile_height / 2) + (35 * (i - 1))) + 12, 0, 1, 1, 0, 0 )
-        love.graphics.drawq(c_sheet, classes[l.population[i]:type()], draw_x + (tile_width / 2), draw_y + ( (tile_height / 2) + (35 * (i - 1))) )
-      end
+      love.graphics.print(l:get_status().." of "..l.name, draw_x + (tile_width / 2 ), draw_y + tile_height / 2, 0, 1, 1, 0, 0)
+      love.graphics.print("Population: "..#l.population..", "..(math.floor(l:get_employment()*100) ).."% employed, ".." "..l:get_availability(), draw_x + (tile_width/2 ), draw_y + tile_height / 2 + 20, 0, 1, 1, 0, 0)
+      love.graphics.print("Poor House: "..l:get_relief(), draw_x + (tile_width / 2 ), draw_y + tile_height / 2 + 40, 0, 1, 1, 1, 0, 0)
     end
   end
 

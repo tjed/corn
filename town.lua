@@ -4,11 +4,11 @@
 town = { 	population = {},		-- pops, mix of workers and peasants
 			urban = false,			-- whether or not it's a city. if it is maxpop is way larger and factories can be built there. and everyone turns into a worker. 
 			owner = nil,			-- capitalist, or, nobody...
-			name = "sometown",		-- duh
+			name = "Town of ",		-- duh
 			loc = {0, 0},			-- location of the town on the map
 			radius = 5,				-- how far labor is allowed to travel from the town
 			available = true,		-- if over 50% of the village is starving then they start to riot
-			poor_house = {true, 0},	-- first value is whether or not there is a poor house. second value is the amount of corn it has to share out
+			poor_house = false,		-- first value is whether or not there is a poor house. second value is the amount of corn it has to share out
 			part_of = nil			-- the city the town is part of (if any)
 		}
 
@@ -27,17 +27,21 @@ function town.new(location)
 	end
 	o.population = {}
 	o.available = true
-	o.poor_house = true
+	o.poor_house = false
 	table.insert(game.towns, o)
 	return o
 end
 
 -- takes a town (implicitly) and an amount to add to the population of the town (defaults to 1 if called without arguments), as long as the population is below max
 -- side fx: modifies the town, and by extension game.population and a whole bunch of other stuff. dangerous!
-function town:populate( with )
+function town:populate( with, t )
 	if #self.population < game.options.max_pop then
 		for i = 1, with or 1 do
-			table.insert(self.population, farmer:new(self.loc) )
+			if t == nil or t == "farmer" then
+				table.insert(self.population, farmer:new(self.loc) )
+			elseif t == "worker" then
+				table.insert(self.population, worker:new(self.loc) )
+			end
 		end
 	end
 end
@@ -77,6 +81,23 @@ function town:get_employment()
 	return working / #self.population
 end
 
+-- takes a town implicitly
+-- returns whether or not labor can be marshalled from there
+function town:get_availability()
+	if self.available then return "calm" else return "agitated" end
+end
+
+-- takes a town
+-- returns its status (independent town or part of a city)
+function town:get_status() 
+	if self.part_of then return "City" else return "Town" end
+end
+
+-- this is so janky
+function town:get_relief()
+	if self.poor_house then return "yes" else return "no" end
+end
+
 -- takes a town, implicitly, and a field or other location, could be a manor, anything with a loc table in it
 -- returns whether the distance from that location (typically a field) is less than the town's travel radius, as in, will people from the town travel there
 -- note that if there's a rail network radius is irrelevant
@@ -101,8 +122,6 @@ end
 function town:has_labor(amt)
 	if self.available then
 		for i = 1, #self.population do
-			--print("\n"..self.population[i].name.." of "..self.name)
-			--print(self.population[i].utilization.." "..amt)
 			if (1 - self.population[i].utilization) > amt then
 				return true
 			end

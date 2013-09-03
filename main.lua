@@ -17,6 +17,7 @@ require "parliament"  -- where we go to debate lawes
 require "manor"       -- where landlords live and where their stash is
 require "town"        -- where pops (farmers) live
 require "field"       -- individual productive (agricultural) tiles
+require "city"
 
 require "sraffian_model"
 

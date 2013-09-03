@@ -57,7 +57,6 @@ function capitalist.keypressed( key )
 	for y = min[2], max[2] do
 		for x = min[1], max[1] do
 			local l
-			print(x.." "..y.." out of "..width.." "..height)
 			if land.map[y][x] then l = land.map[y][x] end
 			if l and game.season == 1 and l.fertility then -- short cut evaluation 
 			  	-- pure readability, I guess locals are faster as well. 
