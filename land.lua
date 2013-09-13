@@ -44,15 +44,16 @@ function land.load()
     for x = 1, width do
       local z = land.get_type( maps[current_map]:getPixel(x - 1, y - 1) )
       if z == "town" then 
-        land.map[y][x] = town.new( {x, y} )
-        land.map[y][x]:populate(math.random(game.options.max_pop))
-        game.population = game.population + #land.map[y][x].population
-        capitalist.towns[#capitalist.towns + 1] = land.map[y][x]
-      elseif z == "capital" then
+        game.towns[#game.towns + 1] = town.new( {x, y} )
+        game.towns[#game.towns]:populate(math.random(game.options.max_pop))
+        game.population = game.population + #game.towns[#game.towns].population
+        capitalist.towns[#capitalist.towns + 1] = game.towns[#game.towns] -- the two lists are the same at game start, they might diverge though!!!
+        land.map[y][x] = { t = "town", part_of = game.towns[#game.towns] }
+      elseif z == "capital" then -- TODO
         land.map[y][x] = { t = z, focus = false}
-      elseif z == "forest" then
+      elseif z == "forest" then -- TODO
         land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, manor = nil, focus = false, to_improve = 6, loc = {x, y}}
-      elseif z == "road" then
+      elseif z == "road" then -- need to make roads dynamic
         land.map[y][x] = { t = z, blocked = false, focus = false, manor = nil, loc = {x, y} }
       elseif z == "water" then
         land.map[y][x] = { t = z , focus = false}
@@ -79,6 +80,8 @@ function land.load()
       end 
     end 
   end 
+  -- TODO: quadtree
+  -- game.lookup_tree.rebuild()
 end
 
 function land.draw()
@@ -102,7 +105,7 @@ function land.draw()
         -- first draw the appropriate field, then shade it to indicate its status
         if cur.t == "swamp" then
           love.graphics.drawq( t_sheet, terrain.swamp, draw_x, draw_y )
-        elseif cur.population then -- if the tile has population then its a town
+        elseif cur.t == "town" then
           love.graphics.drawq( t_sheet, terrain.town, draw_x, draw_y )
         elseif cur.t == "road" then love.graphics.drawq( t_sheet, terrain.road, draw_x, draw_y )
         elseif cur.t == "water" then love.graphics.drawq( t_sheet, terrain.water, draw_x, draw_y )
@@ -209,7 +212,7 @@ function land.draw_gui()
       love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 220, 60)
       love.graphics.setColor(255, 255, 255)
       love.graphics.print(l:get_status().." of "..l.name, draw_x + (tile_width / 2 ), draw_y + tile_height / 2, 0, 1, 1, 0, 0)
-      love.graphics.print("Population: "..#l.population..", "..(math.floor(l:get_employment()*100) ).."% employed, ".." "..l:get_availability(), draw_x + (tile_width/2 ), draw_y + tile_height / 2 + 20, 0, 1, 1, 0, 0)
+      love.graphics.print("Population: "..#l.population..", "..(math.floor(l:get_employment()*100) ).."% employed, "..l:get_availability(), draw_x + (tile_width/2 ), draw_y + tile_height / 2 + 20, 0, 1, 1, 0, 0)
       love.graphics.print("Poor House: "..l:get_relief(), draw_x + (tile_width / 2 ), draw_y + tile_height / 2 + 40, 0, 1, 1, 1, 0, 0)
     end
   end
@@ -310,13 +313,13 @@ function land.draw_gui()
         love.graphics.print("forest", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "swamp" then
         love.graphics.print("swamp", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
-      elseif l.population then
-        love.graphics.print(l.name..", "..(l:get_employment()*100 ).."% employment", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
+      elseif l.t == "town" then
+        love.graphics.print(l.part_of.name..", "..(l.part_of:get_employment()*100 ).."% employment", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
         for i = 1, #capitalist.towns do
           capitalist.towns[i].selected = false
         end
-        l.selected = true
-        land.view_open = l
+        l.part_of.selected = true
+        land.view_open = l.part_of
       elseif l.t == "water" then
         love.graphics.print("water", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "port" then
