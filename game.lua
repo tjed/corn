@@ -35,6 +35,8 @@ end
 function game.update( dt )
 	if win.check() then love.event.push("quit") end
 
+	game.population = #game.workers + #game.farmers
+
 	if game.state == 2 then
 		land.update( dt )
 	elseif game.state == 0 then

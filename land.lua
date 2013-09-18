@@ -2,10 +2,10 @@
 -- pl development 2013
 
 land = {  map = {},                     -- current map
-          hover = nil,                  -- tile under the player's cursor
+          selected = nil,               -- tile clicked
+          hover = nil,                  -- tile under the cursor
           start_focus = nil,            -- where to start drawing land as if it were selected
           end_focus = nil,              -- where to end
-          erase = true,                 -- whether or not to overwrite the start_drag and end_drag
           view_open = nil,              -- whether or not a view of a town or manor or whatever is open      
           mode = nil}                   -- mapmode. manor view, labor radius view, whatever
 
@@ -133,37 +133,31 @@ function land.draw()
 
         -- shade to indicate ownership
         -- manor view
-        if land.mode == "manor" or (land.view_open and land.view_open.store) then
-          if cur.manor then
-            if land.mode == "manor" then
-              for i = 1, #game.landlords do
-                if cur.manor.owner == game.landlords[i] then
-                  love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 0 + (i * (255 / #game.landlords)), 100)
-                  love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-                end
-              end
-            elseif land.view_open then
-              if cur.manor ~= land.view_open then
-                love.graphics.setColor(0 , 0, 0, 100)
-                love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-              end 
-            end
+        if land.selected and land.selected.store then
+          if cur.manor ~= land.selected then 
+            love.graphics.setColor(0 , 0, 0, 100)
+            love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
           end
+        elseif land.mode == "manor" then
+          for i = 1, #game.landlords do
+            if cur.manor and cur.manor.owner == game.landlords[i] then
+              love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 0 + (i * (255 / #game.landlords)), 100)
+              love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+            end
+          end          
         end
 
         -- shade to indicate town proximity
         -- town view
-        if land.mode == "town" or (land.view_open and land.view_open.population) then
-          if land.mode == "town" then
-            for i = 1, #capitalist.towns do
-              if cur.loc and capitalist.towns[i]:check_distance(cur) then
-                love.graphics.setColor(0 , 255 - (i * (255 / #game.landlords)), 255, 50)
-                love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
-              end
-            end
-          elseif land.view_open then
-            if not land.view_open:check_distance(cur) then
-              love.graphics.setColor(0 , 0, 0, 100)
+        if land.selected and land.selected.part_of then
+          if not land.selected.part_of:check_distance(cur) then
+            love.graphics.setColor(0 , 0, 0, 100)
+            love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
+          end
+        elseif land.mode == "town" then
+          for i = 1, #capitalist.towns do
+            if cur.loc and capitalist.towns[i]:check_distance(cur) then
+              love.graphics.setColor(0 , 255 - (i * (255 / #game.towns)), 255, 50)
               love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
             end
           end
@@ -202,35 +196,34 @@ end
 function land.draw_gui()
   love.graphics.setColorMode("replace")
   
-  for i = 1, #capitalist.towns do
-    if capitalist.towns[i].selected then
-      local l = capitalist.towns[i]
-      local draw_x = (l.loc[1] - first_x - 1) * tile_width - offset_x
-      local draw_y = (l.loc[2] - first_y - 1) * tile_height - offset_y + gui_shift
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.rectangle("line", draw_x, draw_y, 50, 50)
-      love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 220, 60)
-      love.graphics.setColor(255, 255, 255)
-      love.graphics.print(l:get_status().." of "..l.name, draw_x + (tile_width / 2 ), draw_y + tile_height / 2, 0, 1, 1, 0, 0)
-      love.graphics.print("Population: "..#l.population..", "..(math.floor(l:get_employment()*100) ).."% employed, "..l:get_availability(), draw_x + (tile_width/2 ), draw_y + tile_height / 2 + 20, 0, 1, 1, 0, 0)
-      love.graphics.print("Poor House: "..l:get_relief(), draw_x + (tile_width / 2 ), draw_y + tile_height / 2 + 40, 0, 1, 1, 1, 0, 0)
-    end
-  end
-
-  for i = 1, #game.landlords do
-    for j = 1, #game.landlords[i].manors do
-      if game.landlords[i].manors[j].selected then
-        local l = game.landlords[i].manors[j]
-        local draw_x = (l.loc[1] - first_x - 1) * tile_width - offset_x
-        local draw_y = (l.loc[2] - first_y - 1) * tile_height - offset_y + gui_shift
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.rectangle("line", draw_x, draw_y, 50, 50)
-        love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 200, 35)
-        love.graphics.setColor(255, 255, 255)
-        love.graphics.print(game.landlords[i].manors[j].owner.name.."'s Manor", draw_x + (tile_width / 2) + 20, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
-        love.graphics.print("Store: "..game.landlords[i].manors[j].store.." Guards: "..game.landlords[i].manors[j].guards, draw_x + (tile_width / 2) + 20, draw_y + (tile_height / 2) + 20, 0, 1, 1, 0, 0)
-        love.graphics.drawq(c_sheet, classes.landlord, draw_x + (tile_width / 2), draw_y + ( (tile_height / 2) ) )
+  if land.selected then
+    local l = land.selected
+    if land.selected.part_of then l = land.selected.part_of end
+    local draw_x = (l.loc[1] - first_x - 1) * tile_width - offset_x
+    local draw_y = (l.loc[2] - first_y - 1) * tile_height - offset_y + gui_shift
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.rectangle("line", draw_x, draw_y, 50, 50)
+    love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 220, 60)
+    love.graphics.setColor(255, 255, 255)
+    if l.population then
+      if l.available then
+        love.graphics.setColor(0, 0, 255)
+      else 
+        love.graphics.setColor(255, 0, 0)
       end
+      love.graphics.rectangle("fill", draw_x + tile_width / 2, draw_y + tile_height / 2, 220, 20 )
+      love.graphics.setColor(255, 255, 255)
+      love.graphics.print(l.name, draw_x + (tile_width / 2 ) + 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
+      love.graphics.print("Population: "..#l.population..", "..(math.floor(l:get_employment()*100) ).."% employed, "..l:get_availability(), draw_x + ( tile_width / 2 ) + 5, draw_y + tile_height / 2 + 20, 0, 1, 1, 0, 0)
+      love.graphics.print("Poor House: "..l:get_relief(), draw_x + (tile_width / 2 ) + 6, draw_y + tile_height / 2 + 35, 0, 1, 1, 1, 0, 0)
+    elseif l.store then
+      love.graphics.print(l.owner.name.."'s Manor", draw_x + (tile_width / 2) + 20, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
+      love.graphics.print("Store: "..l.store.." Guards: "..l.guards, draw_x + (tile_width / 2) + 20, draw_y + (tile_height / 2) + 20, 0, 1, 1, 0, 0)
+      love.graphics.drawq(c_sheet, classes.landlord, draw_x + (tile_width / 2), draw_y + ( (tile_height / 2) ) )
+    elseif land.selected and land.selected.fertility then
+      love.graphics.print("Fertility: "..l.fertility.." Status: Fallow", draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
+      love.graphics.print("Intensity: K: 1/"..math.floor(l.intensity.k * 10).." L: 1/"..math.floor(l.intensity.k * 10), draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 25, 0, 1, 1, 0, 0)
+      love.graphics.print("Part of the estate of "..l.manor.owner.name, draw_x + (tile_width / 2) + 5, draw_y + (tile_height / 2) + 45, 0, 1, 1, 0, 0)
     end
   end
 
@@ -249,7 +242,6 @@ function land.draw_gui()
   if land.mode == "manor" then
     love.graphics.setColor(255, 255, 255)
     love.graphics.print("Manor View", minimap_x + 1, minimap_y - 17, math.pi / -6, 1.2, 1.2, 0, 0)
-    --love.graphics.print("M", minimap_x + 1, minimap_y - 17, 0, 1, 1, 0, 0)
     love.graphics.setColor(0, 0, 0)
   else
     love.graphics.setColor(255, 255, 255)
@@ -297,11 +289,11 @@ function land.draw_gui()
   if land.hover then
     local l = land.hover
     if l.fertility then -- if the land selected is a field (and if only one field is selected)
-      local to_print = " FERTILITY: "
+      local to_print = "K: 1/"..math.floor(l.intensity.k * 10).." L: 1/"..math.floor(l.intensity.l * 10).." FERTILITY: "
       if l.activity.planting then
         to_print = to_print..l.fertility
       elseif l.activity.improving then
-        to_print = to_print.."*BEING IMPROVED*"
+        to_print = to_print.."improving to "..(l.fertility + 1)
       else 
         to_print = to_print..l.fertility..", fallow "
       end
@@ -315,11 +307,6 @@ function land.draw_gui()
         love.graphics.print("swamp", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "town" then
         love.graphics.print(l.part_of.name..", "..(l.part_of:get_employment()*100 ).."% employment", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
-        for i = 1, #capitalist.towns do
-          capitalist.towns[i].selected = false
-        end
-        l.part_of.selected = true
-        land.view_open = l.part_of
       elseif l.t == "water" then
         love.graphics.print("water", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "port" then
@@ -330,14 +317,7 @@ function land.draw_gui()
       elseif l.t == "capital" then -- send em to tha capital
         player.update("l")
       elseif l.store then -- send em to tha manor
-        love.graphics.print("a manor", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
-        for i = 1, #game.landlords do
-          for j = 1,  #game.landlords[i].manors do
-            game.landlords[i].manors[j].selected = false
-          end
-        end
-        l.selected = true
-        land.view_open = l
+        love.graphics.print(l.owner.name.."'s manor.", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       end
     end
   end
@@ -384,62 +364,80 @@ function land.update_display(force_x, force_y)
 end
 
 function land.update( dt ) 
-  if game.state == 2 then
-    local x = first_x + math.ceil( (offset_x + love.mouse.getX()) / tile_width)
-    local y = first_y + math.ceil( (offset_y + love.mouse.getY() - gui_shift) / tile_height)
-    local t_x = love.mouse.getX()
-    local t_y = love.mouse.getY()
-    if land.map[y] and land.map[y][x] and not love.mouse.isDown("l") then
-      if not(t_y > minimap_y - 20 and t_x > minimap_x) then
-        land.hover = land.map[y][x]
-        land.map[y][x].hover = true
+  local x = first_x + math.ceil( (offset_x + love.mouse.getX()) / tile_width)
+  local y = first_y + math.ceil( (offset_y + love.mouse.getY() - gui_shift) / tile_height)
+  local t_x = love.mouse.getX()
+  local t_y = love.mouse.getY()
+  if land.map[y] and land.map[y][x] then
+    if not(t_y > minimap_y - 20 and t_x > minimap_x) then
+      land.hover = land.map[y][x]
+    end
+  end
+
+  -- if the mouse is down but it's in the minimap area
+  if love.mouse.isDown("l") and (t_y > minimap_y and t_x > minimap_x) then
+    t_y = ( ( t_y - minimap_y ) / 5 ) - (display_h / 2) -- places the minimap click in the right scale, and centers the map display on the click
+    t_x = ( ( t_x - minimap_x ) / 5 ) - (display_w / 2)
+    land.update_display(t_x, t_y)
+  end
+  inter = dt + inter
+  land.update_display()
+end
+
+
+-- see main.lua (callback comes here if game state is land view)
+-- takes all relevant mouse input
+function land.handle_mouse(x, y, button, action)
+  local tile_x = first_x + math.ceil( (offset_x + x) / tile_width)
+  local tile_y = first_y + math.ceil( (offset_y + y - gui_shift) / tile_height)
+
+  -- mouse release actions
+  -- note that pressing the mouse can not move the map
+  -- this is handled in land.update above, where the love.mouse.isDown function is used instead. this allows dragging the map
+  if action == "released" and button == "l" then
+    if not(y > minimap_y - 20 and x > minimap_x) then
+
+      if land.start_focus and not land.end_focus then
+        land.end_focus = {tile_x, tile_y}
+      end
+
+      if land.map[tile_y] and land.map[tile_y][tile_x] then
+        land.selected = land.map[tile_y][tile_x]
+      end
+      if land.selected then land.end_focus = nil end
+    end
+  end
+
+  -- mouse pressing actions
+  if action == "pressed" and button == "l" then
+    -- clicking on the map modes activates/deactivates them
+    if (y > minimap_y - 20 and x > minimap_x - 5) and (y < minimap_y and x < minimap_x + 15) then
+      if land.mode ~= "manor" then
+        land.mode = "manor"
+      else 
         land.mode = nil
-      else
-        land.hover = nil
-        if (t_y > minimap_y - 20 and t_x > minimap_x - 5) and (t_y < minimap_y and t_x < minimap_x + 15) then
-          land.mode = "manor"
-        elseif (t_y > minimap_y - 20 and t_x > minimap_x + 25) and (t_y < minimap_y and t_x < minimap_x + 45) then
-          land.mode = "town"
-        elseif (t_y > minimap_y - 20 and t_x > minimap_x + 55) and (t_y < minimap_y and t_x < minimap_x + 75) then
-          land.mode = "fertility"
-        else
-          land.mode = nil
-        end
+      end
+    elseif (y > minimap_y - 20 and x > minimap_x + 25) and (y < minimap_y and x < minimap_x + 45) then
+      if land.mode ~= "town" then
+        land.mode = "town"
+      else 
+        land.mode = nil
+      end
+    elseif (y > minimap_y - 20 and x > minimap_x + 55) and (y < minimap_y and x < minimap_x + 75) then
+      if land.mode ~= "fertility" then
+        land.mode = "fertility"
+      else 
+        land.mode = nil
       end
     end
-    if love.mouse.isDown("r") then
-      land.start_focus, land.end_focus = nil, nil
-      for i = 1, #capitalist.towns do
-        capitalist.towns[i].selected = false
-      end
-      for i = 1, #game.landlords do
-        for j = 1,  #game.landlords[i].manors do
-          game.landlords[i].manors[j].selected = false
-        end
-      end
-      land.view_open = nil
-    elseif love.mouse.isDown("l") then
-      if t_y > minimap_y - 20 and t_x > minimap_x  then -- minimap
-        t_y = ( ( t_y - minimap_y ) / 5 ) - (display_h / 2) -- places the minimap click in the right scale, and centers the map display on the click
-        t_x = ( ( t_x - minimap_x ) / 5 ) - (display_w / 2)
-        land.update_display(t_x, t_y)
-      elseif land.view_open and land.start_focus then
-        --if land.start_focus < 
-      elseif not land.view_open and not land.start_focus or land.erase then
-        if x > width then x = width end 
-        if y > height  then y = height end 
-        land.start_focus = { x, y }
-        land.erase = false
-      elseif land.start_focus then
-        if x > width then x = width end 
-        if y > height  then y = height end 
-        land.end_focus = { x, y }
-      end
-    elseif not love.mouse.isDown("l") then
-      land.erase = true
-    end
-    inter = dt + inter
-    land.update_display()
+    if not land.start_focus then land.start_focus = { tile_x, tile_y } end
+  end
+  -- right clicking erases everything
+  if action == "pressed" and button == "r" then
+    land.selected = nil
+    land.start_focus = nil
+    land.end_focus = nil
+    land.mode = nil
   end
 end
 
@@ -470,8 +468,6 @@ function land.get_type( r, g, b )  -- alpha ignored, for now. idk what its purpo
     return 1
   end
 end
-
--- helper functions
 
 -- obvs
 function land.get_tile( loc )

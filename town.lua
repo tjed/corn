@@ -6,7 +6,7 @@
 town = { 	population = {},		-- pops, mix of workers and peasants
 			parts = {},
 			owner = nil,			-- capitalist, or, nobody...
-			name = "Town of ",		-- duh
+			name = "",		-- duh
 			loc = {0, 0},			-- location of the center of the town on the map
 			city = false,			-- whether or not the things a city
 			radius = 5,				-- how far labor is allowed to travel from the town
@@ -27,6 +27,7 @@ function town.new(location)
 			if o.name == game.towns[i].name then named = false end
 		end
 	end
+	o.name = "Town of "..o.name
 	o.population = {}
 	o.available = true
 	o.poor_house = false
@@ -58,6 +59,9 @@ function town:update()
 	-- I guess this means towns can become cities and vice versa
 	if #self.parts > 2 then 
 		self.city = true
+		print(self.name)
+		self.name = string.gsub(self.name, "Town", "City")
+		print(self.name)
 	else
 		self.city = false
 	end
@@ -102,12 +106,6 @@ function town:get_availability()
 	if self.available then return "calm" else return "rioting!" end
 end
 
--- takes a town
--- returns its status (independent town or part of a city)
-function town:get_status() 
-	if #self.parts > 2 then return "City" else return "Town" end
-end
-
 -- this is so janky
 function town:get_relief()
 	if self.poor_house then return "yes" else return "no" end
@@ -146,23 +144,19 @@ function town:has_labor(amt)
 end
 
 function town:grow()
-	print("growing "..self.name)
 	local grown = false
+	local attempts = 0
 	while not grown do
 		local x, y = math.random(-1, 1), math.random(-1, 1)
-		local j = math.random(#self.parts)
-		print(self.parts[j][1] + x)
-		print(self.parts[j][2] + y)
-		print(j)
+		if attempts > 8 then j = math.random(#self.parts) else j = 1 end
 		local current = land.get_tile( { self.parts[j][1] + x, self.parts[j][2] + y } ).t
 		local cannot_be = ("water" or "swamp" or "port" or "town")
-		print((current == cannot_be))
 		if not (current == cannot_be) then
 			land.map[self.parts[j][2] + y][self.parts[j][1] + x] = nil
 			land.map[self.parts[j][2] + y][self.parts[j][1] + x] = {t = "town", part_of = self}
 			table.insert(self.parts, { self.parts[j][1] + x, self.parts[j][2] + y } )
-			print("new type: "..land.get_tile( { self.parts[j][1] + x, self.parts[j][2] + y } ).t)
+			grown = true
 		end
-		grown = true
+		attempts = attempts + 1
 	end
 end

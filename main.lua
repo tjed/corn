@@ -108,11 +108,19 @@ function love.draw()
   game.draw()
 end
 
-function love.mousepressed(x_sel, y_sel, button)
+function love.mousepressed(x, y, button)
   if game.state == 2 then
-    --land.update_selected(button)
+    land.handle_mouse(x, y, button, "pressed")
   elseif game.state == 3 then
-    parliament.update(x_sel, y_sel)
+    parliament.update(x, y)
+  end
+end
+
+function love.mousereleased(x, y, button)
+  if game.state == 2  then 
+    land.handle_mouse(x, y, button, "released")
+  elseif game.state == 3 then
+    parliament.handle_mouse(x, y, button, "released")
   end
 end
 
