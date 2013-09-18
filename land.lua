@@ -195,8 +195,14 @@ end
 
 function land.draw_gui()
   love.graphics.setColorMode("replace")
-  
-  if land.selected then
+
+  if land.start_focus and land.end_focus then
+    print(land.start_focus[1].." "..land.end_focus[1].." "..land.start_focus[2].." "..land.end_focus[2])
+    print((land.start_focus[1] == land.end_focus[1]) and (land.start_focus[2] == land.end_focus[2] ))
+    print(land.focus_size())
+  end
+  -- AAAAAAAAAAAAAAA
+  if land.selected and land.focus_size() < 1 and land.end_focus then
     local l = land.selected
     if land.selected.part_of then l = land.selected.part_of end
     local draw_x = (l.loc[1] - first_x - 1) * tile_width - offset_x
@@ -396,20 +402,18 @@ function land.handle_mouse(x, y, button, action)
   -- this is handled in land.update above, where the love.mouse.isDown function is used instead. this allows dragging the map
   if action == "released" and button == "l" then
     if not(y > minimap_y - 20 and x > minimap_x) then
-
       if land.start_focus and not land.end_focus then
         land.end_focus = {tile_x, tile_y}
       end
-
-      if land.map[tile_y] and land.map[tile_y][tile_x] then
-        land.selected = land.map[tile_y][tile_x]
-      end
-      if land.selected then land.end_focus = nil end
     end
   end
 
   -- mouse pressing actions
   if action == "pressed" and button == "l" then
+    -- clicking on stuff selects it
+    if land.map[tile_y] and land.map[tile_y][tile_x] then
+      land.selected = land.map[tile_y][tile_x]
+    end
     -- clicking on the map modes activates/deactivates them
     if (y > minimap_y - 20 and x > minimap_x - 5) and (y < minimap_y and x < minimap_x + 15) then
       if land.mode ~= "manor" then
@@ -478,4 +482,14 @@ end
 -- this probably doesn't even have to be in the land file. lol
 function land.get_distance(from, to)
   return math.sqrt( math.abs(from.loc[1] - to.loc[1]) + math.abs(from.loc[2] - to.loc[2]) )
+end
+
+-- takes nothing
+-- returns the size of the focus array (as in, how many tiles are selected)
+function land.focus_size()
+  if land.start_focus and land.end_focus then
+    return math.abs(land.end_focus[1] - land.start_focus[1]) * math.abs(land.end_focus[2] - land.start_focus[2])
+  else 
+    return 0 
+  end
 end
