@@ -5,8 +5,7 @@ land = {  map = {},                     -- current map
           selected = nil,               -- tile clicked
           hover = nil,                  -- tile under the cursor
           start_focus = nil,            -- where to start drawing land as if it were selected
-          end_focus = nil,              -- where to end
-          view_open = nil,              -- whether or not a view of a town or manor or whatever is open      
+          end_focus = nil,              -- where to end   
           mode = nil}                   -- mapmode. manor view, labor radius view, whatever
 
 local display_y = 0   -- the exact pixels, on the abstract map, at which we're starting the render cycle, e.g. 0, 0 if we're in the extreme upper left corner
@@ -19,6 +18,8 @@ local offset_y = 0
 local gui_shift = 25  -- height of the gui bar (top and bottom have to be the same)
 
 local inter = 0       -- for the soft pulsing that goes on lol
+
+local focus_rect = nil -- rectum? hardly even knew em
 
 width = 0             --see land.load()
 height = 0
@@ -196,20 +197,19 @@ end
 function land.draw_gui()
   love.graphics.setColorMode("replace")
 
-  if land.start_focus and land.end_focus then
-    print(land.start_focus[1].." "..land.end_focus[1].." "..land.start_focus[2].." "..land.end_focus[2])
-    print((land.start_focus[1] == land.end_focus[1]) and (land.start_focus[2] == land.end_focus[2] ))
-    print(land.focus_size())
+  if focus_rect then
+    love.graphics.rectangle("line", focus_rect[1], focus_rect[2], focus_rect[3] - focus_rect[1] , focus_rect[4] - focus_rect[2])
   end
+
   -- AAAAAAAAAAAAAAA
-  if land.selected and land.focus_size() < 1 and land.end_focus then
+  if land.selected and land.focus_size() < 1 and not focus_rect then
     local l = land.selected
     if land.selected.part_of then l = land.selected.part_of end
     local draw_x = (l.loc[1] - first_x - 1) * tile_width - offset_x
     local draw_y = (l.loc[2] - first_y - 1) * tile_height - offset_y + gui_shift
     love.graphics.setColor(0, 0, 0)
     love.graphics.rectangle("line", draw_x, draw_y, 50, 50)
-    love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 220, 60)
+    love.graphics.rectangle("fill", draw_x + (tile_width / 2), draw_y + (tile_height / 2), 250, 60)
     love.graphics.setColor(255, 255, 255)
     if l.population then
       if l.available then
@@ -217,7 +217,7 @@ function land.draw_gui()
       else 
         love.graphics.setColor(255, 0, 0)
       end
-      love.graphics.rectangle("fill", draw_x + tile_width / 2, draw_y + tile_height / 2, 220, 20 )
+      love.graphics.rectangle("fill", draw_x + tile_width / 2, draw_y + tile_height / 2, 250, 20 )
       love.graphics.setColor(255, 255, 255)
       love.graphics.print(l.name, draw_x + (tile_width / 2 ) + 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
       love.graphics.print("Population: "..#l.population..", "..(math.floor(l:get_employment()*100) ).."% employed, "..l:get_availability(), draw_x + ( tile_width / 2 ) + 5, draw_y + tile_height / 2 + 20, 0, 1, 1, 0, 0)
@@ -227,7 +227,13 @@ function land.draw_gui()
       love.graphics.print("Store: "..l.store.." Guards: "..l.guards, draw_x + (tile_width / 2) + 20, draw_y + (tile_height / 2) + 20, 0, 1, 1, 0, 0)
       love.graphics.drawq(c_sheet, classes.landlord, draw_x + (tile_width / 2), draw_y + ( (tile_height / 2) ) )
     elseif land.selected and land.selected.fertility then
-      love.graphics.print("Fertility: "..l.fertility.." Status: Fallow", draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
+      local to_print = "Fertility: "..l.fertility.." Status: "
+      if land.selected.activity.improving then 
+        to_print = to_print.." Improving to "..(land.selected.fertility + 1)
+      elseif land.selected.activity.planting then 
+        to_print = to_print.." Planting" 
+      end
+      love.graphics.print(to_print, draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
       love.graphics.print("Intensity: K: 1/"..math.floor(l.intensity.k * 10).." L: 1/"..math.floor(l.intensity.k * 10), draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 25, 0, 1, 1, 0, 0)
       love.graphics.print("Part of the estate of "..l.manor.owner.name, draw_x + (tile_width / 2) + 5, draw_y + (tile_height / 2) + 45, 0, 1, 1, 0, 0)
     end
@@ -295,13 +301,13 @@ function land.draw_gui()
   if land.hover then
     local l = land.hover
     if l.fertility then -- if the land selected is a field (and if only one field is selected)
-      local to_print = "K: 1/"..math.floor(l.intensity.k * 10).." L: 1/"..math.floor(l.intensity.l * 10).." FERTILITY: "
-      if l.activity.planting then
-        to_print = to_print..l.fertility
-      elseif l.activity.improving then
-        to_print = to_print.."improving to "..(l.fertility + 1)
-      else 
-        to_print = to_print..l.fertility..", fallow "
+      local to_print = "Field"
+      if l.fertility > 4 then 
+        to_print = "High Fertility "..to_print
+      elseif l.fertility > 2 then 
+        to_print = "Low Fertility "..to_print
+      else
+        to_print = "Waste Land"
       end
       love.graphics.print(to_print, 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
     else 
@@ -312,7 +318,8 @@ function land.draw_gui()
       elseif l.t == "swamp" then
         love.graphics.print("swamp", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "town" then
-        love.graphics.print(l.part_of.name..", "..(l.part_of:get_employment()*100 ).."% employment", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
+        local to_print = l.part_of.name..", "..l.part_of:get_availability()
+        love.graphics.print(to_print, 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "water" then
         love.graphics.print("water", 10, (display_h * tile_height) - 20, 0, 1, 1, 0, 0)
       elseif l.t == "port" then
@@ -385,6 +392,14 @@ function land.update( dt )
     t_y = ( ( t_y - minimap_y ) / 5 ) - (display_h / 2) -- places the minimap click in the right scale, and centers the map display on the click
     t_x = ( ( t_x - minimap_x ) / 5 ) - (display_w / 2)
     land.update_display(t_x, t_y)
+  -- if the mouse is down outside of the minimap area
+  elseif love.mouse.isDown("l") and not (t_y > minimap_y - 20 and t_x > minimap_x) then
+    if not focus_rect then 
+      focus_rect = {love.mouse.getX(), love.mouse.getY(), love.mouse.getX(), love.mouse.getY()} 
+    elseif focus_rect then 
+      focus_rect[3] = love.mouse.getX()
+      focus_rect[4] = love.mouse.getY()
+    end
   end
   inter = dt + inter
   land.update_display()
@@ -402,16 +417,16 @@ function land.handle_mouse(x, y, button, action)
   -- this is handled in land.update above, where the love.mouse.isDown function is used instead. this allows dragging the map
   if action == "released" and button == "l" then
     if not(y > minimap_y - 20 and x > minimap_x) then
-      if land.start_focus and not land.end_focus then
-        land.end_focus = {tile_x, tile_y}
-      end
+      land.end_focus = {tile_x, tile_y}
+      land.start_focus = { first_x + math.ceil( (offset_x + focus_rect[1]) / tile_width), first_y + math.ceil( (offset_y + focus_rect[2] - gui_shift) / tile_height) }
+      focus_rect = nil
     end
   end
 
   -- mouse pressing actions
   if action == "pressed" and button == "l" then
     -- clicking on stuff selects it
-    if land.map[tile_y] and land.map[tile_y][tile_x] then
+    if land.map[tile_y] and land.map[tile_y][tile_x] and not(y > minimap_y - 20 and x > minimap_x) then
       land.selected = land.map[tile_y][tile_x]
     end
     -- clicking on the map modes activates/deactivates them
@@ -434,7 +449,6 @@ function land.handle_mouse(x, y, button, action)
         land.mode = nil
       end
     end
-    if not land.start_focus then land.start_focus = { tile_x, tile_y } end
   end
   -- right clicking erases everything
   if action == "pressed" and button == "r" then
@@ -442,6 +456,7 @@ function land.handle_mouse(x, y, button, action)
     land.start_focus = nil
     land.end_focus = nil
     land.mode = nil
+    focus_rect = nil
   end
 end
 
@@ -484,12 +499,9 @@ function land.get_distance(from, to)
   return math.sqrt( math.abs(from.loc[1] - to.loc[1]) + math.abs(from.loc[2] - to.loc[2]) )
 end
 
--- takes nothing
--- returns the size of the focus array (as in, how many tiles are selected)
+-- finds out how large the size of the selected area is (if it's more than 1 is all I care about)
 function land.focus_size()
   if land.start_focus and land.end_focus then
-    return math.abs(land.end_focus[1] - land.start_focus[1]) * math.abs(land.end_focus[2] - land.start_focus[2])
-  else 
-    return 0 
-  end
+    return math.abs(land.start_focus[1] - land.end_focus[1]) *  math.abs(land.start_focus[2] - land.end_focus[2])
+  else return 0 end
 end
