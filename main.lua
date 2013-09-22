@@ -29,7 +29,7 @@ function love.load()
   tile_width = 50 -- the sprites i stole from the steel panthers website are 50x50. the real steel panthers sprites are super weird hex-based lbms
   tile_height = 50
 
-  current_map = 3 -- see /maps
+  current_map = 5 -- see /maps
   map_count = 0
 
   -- load all the gfx. 
@@ -49,7 +49,7 @@ function love.load()
               town =    love.graphics.newQuad(0, 150, 50, 50, 200, 200), 
               port =    love.graphics.newQuad(50, 100, 50, 50, 200, 200),
               manor =   love.graphics.newQuad(0, 100, 50, 50, 200, 200),
-              garrison =nil, --TODO
+              garrison =love.graphics.newQuad(50, 150, 50, 50, 200, 200),
               factory = nil, --TODO
               fog =     love.graphics.newQuad(50, 150, 50, 50, 200, 200)
             }

@@ -53,13 +53,13 @@ function land.load()
       elseif z == "capital" then -- TODO
         land.map[y][x] = { t = z, focus = false}
       elseif z == "forest" then -- TODO
-        land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, manor = nil, focus = false, to_improve = 6, loc = {x, y}}
+        land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, manor = nil, focus = false, to_improve = 6}
       elseif z == "road" then -- need to make roads dynamic
-        land.map[y][x] = { t = z, blocked = false, focus = false, manor = nil, loc = {x, y} }
+        land.map[y][x] = { t = z, blocked = false, manor = nil }
       elseif z == "water" then
         land.map[y][x] = { t = z , focus = false}
       elseif z == "swamp" then
-        land.map[y][x] = { t = z, depth = 2, draining = false, focus = false, to_improve = 6, manor = nil}
+        land.map[y][x] = { t = z, depth = 2, draining = false, to_improve = 6, manor = nil}
       elseif z == "manor" then
         land.map[y][x] = manor.new( {x, y} )
         land.map[y][x].owner = landlord.new( land.map[y][x] )
@@ -69,6 +69,10 @@ function land.load()
         land.map[y][x] = field.new( z, {x, y} )
         if z > game.high_fertility then game.high_fertility = z end 
         if z < game.low_fertility then game.low_fertility = z end
+      elseif z == "garrison" then
+        land.map[y][x] = garrison.new( {x, y} )
+        table.insert(game.garrisons, land.map[y][x])
+      end
       end
     end
   end
@@ -483,6 +487,8 @@ function land.get_type( r, g, b )  -- alpha ignored, for now. idk what its purpo
     return "manor"
   elseif r == 200 and g == 191 and b == 231 then
     return "port"
+  elseif r == 239 and g == 228 and b == 176 then -- garrison! where regiments are
+    return "garrison"
   else
     return 1
   end

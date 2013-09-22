@@ -24,7 +24,7 @@ game = {season = 1, 								-- season: 1 = spring, 2 = summer, 3 = fall, 4 = win
 		farmers = {},								-- all farmers
 		landlords = {},								-- all landlords
 		towns = {},									-- all towns
-		cities = {}									-- all cities
+		garrison = {}								-- all forts
 	}
 
 
