@@ -3,7 +3,9 @@
 
 game = {season = 1, 								-- season: 1 = spring, 2 = summer, 3 = fall, 4 = winter
 		state = 0, 									-- state: 0 = splash, 1 = menu, 2 = land, 3 = parliament
-		year = 1803, 
+		year = 1803,
+		time = 0, 
+		paused = false,
 		tariff = true, 								-- whether or not we can import corn
 		ten_hour_bill = false,						-- whether or not the working day is unrestricted
 		wage_rate = 1, 								-- all three, profit, wages, and rent, are determined at the same time at the end of the season.
@@ -22,9 +24,10 @@ game = {season = 1, 								-- season: 1 = spring, 2 = summer, 3 = fall, 4 = win
 					max_size = 5 },					-- maximum amt of parts (tiles) allowed in a city
 		workers = {},								-- all workers
 		farmers = {},								-- all farmers
+		regiments = {},								-- all souljas
 		landlords = {},								-- all landlords
 		towns = {},									-- all towns
-		garrison = {}								-- all forts
+		garrisons = {}								-- all forts
 	}
 
 
@@ -37,8 +40,18 @@ function game.update( dt )
 
 	game.population = #game.workers + #game.farmers
 
+	if not game.paused then game.time = game.time + love.timer.getDelta() end
+
+	if game.time > season.length[game.season] then
+		game.time = 0
+		game.change_season()
+	end
+
 	if game.state == 2 then
 		land.update( dt )
+		for i = 1, #game.regiments do 
+			game.regiments[i]:update(dt)
+		end
 	elseif game.state == 0 then
 		splash.update( dt )
 	end

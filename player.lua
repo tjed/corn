@@ -18,12 +18,6 @@ function player.update( key )
 		return
 	end
 
-	-- skip to next turn 
-	if key == "return" then
-		game.change_season()
-		return
-	end
-
 	-- restart on a different map. for fun
 	if key == "m" then
 		if current_map < map_count then current_map = current_map + 1
@@ -33,6 +27,8 @@ function player.update( key )
 		game.year, game.season = 1803, 1
 		return
 	end
+
+	if key == "pause" then game.paused = not game.paused end
 
 	-- toggle d-cay
 	if key == "d" then 

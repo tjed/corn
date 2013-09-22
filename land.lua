@@ -53,18 +53,18 @@ function land.load()
       elseif z == "capital" then -- TODO
         land.map[y][x] = { t = z, focus = false}
       elseif z == "forest" then -- TODO
-        land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, manor = nil, focus = false, to_improve = 6}
+        land.map[y][x] = { t = z, thickness = 2, growth = 1, clear_cut = false, prune = false, loc = {x, y}, to_improve = 6}
       elseif z == "road" then -- need to make roads dynamic
-        land.map[y][x] = { t = z, blocked = false, manor = nil }
+        land.map[y][x] = { t = z, blocked = false, loc = {x, y} }
       elseif z == "water" then
-        land.map[y][x] = { t = z , focus = false}
+        land.map[y][x] = { t = z, loc = {x, y} }
       elseif z == "swamp" then
         land.map[y][x] = { t = z, depth = 2, draining = false, to_improve = 6, manor = nil}
       elseif z == "manor" then
         land.map[y][x] = manor.new( {x, y} )
         land.map[y][x].owner = landlord.new( land.map[y][x] )
       elseif z == "port" then
-        land.map[y][x] = {t = z, focus = false, open = game.tariff }
+        land.map[y][x] = {t = z, open = game.tariff }
       elseif type(z) == "number" then 
         land.map[y][x] = field.new( z, {x, y} )
         if z > game.high_fertility then game.high_fertility = z end 
@@ -72,7 +72,6 @@ function land.load()
       elseif z == "garrison" then
         land.map[y][x] = garrison.new( {x, y} )
         table.insert(game.garrisons, land.map[y][x])
-      end
       end
     end
   end
@@ -108,14 +107,13 @@ function land.draw()
 
         -- handing tile drawing in the case of fields
         -- first draw the appropriate field, then shade it to indicate its status
-        if cur.t == "swamp" then
-          love.graphics.drawq( t_sheet, terrain.swamp, draw_x, draw_y )
-        elseif cur.t == "town" then
-          love.graphics.drawq( t_sheet, terrain.town, draw_x, draw_y )
+        if cur.t == "swamp" then love.graphics.drawq( t_sheet, terrain.swamp, draw_x, draw_y )
+        elseif cur.t == "town" then love.graphics.drawq( t_sheet, terrain.town, draw_x, draw_y )
         elseif cur.t == "road" then love.graphics.drawq( t_sheet, terrain.road, draw_x, draw_y )
         elseif cur.t == "water" then love.graphics.drawq( t_sheet, terrain.water, draw_x, draw_y )
         elseif cur.t == "forest" then love.graphics.drawq( t_sheet, terrain.forest, draw_x, draw_y )
         elseif cur.t == "port" then love.graphics.drawq( t_sheet, terrain.port, draw_x, draw_y )
+        elseif cur.contains then love.graphics.drawq( t_sheet, terrain.garrison, draw_x, draw_y )
         elseif cur.store then love.graphics.drawq( t_sheet, terrain.manor, draw_x, draw_y )
         elseif cur.fertility then           
           if cur.fertility > 4 then 
@@ -128,11 +126,18 @@ function land.draw()
         end
 
         -- draw selected
-        if land.start_focus and land.end_focus then
+        if land.start_focus and land.end_focus and not land.selected.discipline then
           if first_y + y >= math.min(land.start_focus[2], land.end_focus[2]) and first_x + x >= math.min(land.start_focus[1], land.end_focus[1]) and first_y + y <= math.max(land.end_focus[2], land.start_focus[2]) and first_x + x <= math.max(land.end_focus[1], land.start_focus[1]) then
             love.graphics.setColor(0, 0, 255, 50 * math.abs(math.sin(inter)))
             love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)
             love.graphics.setColor(255, 255, 255)
+          end
+        end
+
+        if land.selected and land.selected.contains and cur.loc then
+          if not land.selected:in_radius( cur.loc ) then
+            love.graphics.setColor(0 , 0, 0, 100)
+            love.graphics.rectangle("fill", draw_x, draw_y, tile_width, tile_height)            
           end
         end
 
@@ -205,8 +210,25 @@ function land.draw_gui()
     love.graphics.rectangle("line", focus_rect[1], focus_rect[2], focus_rect[3] - focus_rect[1] , focus_rect[4] - focus_rect[2])
   end
 
+  for i = 1, #game.garrisons do
+    for j = 1, #game.garrisons[i].contains do 
+      if (first_x * tile_width) + offset_x < game.garrisons[i].contains[j].loc[1] and first_y * tile_height + offset_y < game.garrisons[i].contains[j].loc[2] then
+        local l = game.garrisons[i].contains[j]
+        local draw_x = l.loc[1] - (first_x * tile_width) - offset_x -- 4 readability
+        local draw_y = l.loc[2] - (first_y * tile_height) - (offset_y + gui_shift)
+        love.graphics.drawq(c_sheet, classes.soldier, draw_x - 8, draw_y - 17)
+        if land.selected == game.garrisons[i].contains[j] then 
+          love.graphics.rectangle("line", draw_x - 8, draw_y - 17, 16, 35) 
+          if land.selected.dest then
+            love.graphics.circle("fill", land.selected.dest[1] - offset_x - (first_x * tile_width), land.selected.dest[2]- gui_shift - offset_y - (first_y * tile_height), 5, 20)
+          end
+        end
+      end
+    end
+  end
+
   -- AAAAAAAAAAAAAAA
-  if land.selected and land.focus_size() < 1 and not focus_rect then
+  if land.selected and land.focus_size() < 1 and not focus_rect and not land.selected.discipline then
     local l = land.selected
     if land.selected.part_of then l = land.selected.part_of end
     local draw_x = (l.loc[1] - first_x - 1) * tile_width - offset_x
@@ -240,7 +262,17 @@ function land.draw_gui()
       love.graphics.print(to_print, draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
       love.graphics.print("Intensity: K: 1/"..math.floor(l.intensity.k * 10).." L: 1/"..math.floor(l.intensity.k * 10), draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 25, 0, 1, 1, 0, 0)
       love.graphics.print("Part of the estate of "..l.manor.owner.name, draw_x + (tile_width / 2) + 5, draw_y + (tile_height / 2) + 45, 0, 1, 1, 0, 0)
+    elseif land.selected and land.selected.contains then
+      love.graphics.print("barracks, "..#land.selected.contains.." regiment(s) based here", draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
     end
+  elseif land.selected and land.selected.discipline then
+    local l = land.selected
+    local draw_x = l.loc[1] - offset_x - (first_x * tile_width)
+    local draw_y = l.loc[2] - offset_y - gui_shift - (first_y * tile_height)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.print(l.name, draw_x - 30, draw_y + 35, 0, 1, 1, 0, 0)
+    love.graphics.print(land.get_tile(l.loc, true).t, draw_x - 30, draw_y + 55, 0, 1, 1, 0, 0)
   end
 
   love.graphics.setColor(0, 0, 0)
@@ -283,10 +315,20 @@ function land.draw_gui()
   end
 
   love.graphics.setColor(255, 0, 0)
+  love.graphics.rectangle("fill", 0, 0, (game.time / season.length[game.season]) * 90, 25)
 
   love.graphics.setColor(255, 255, 255)
   
-  love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
+
+  if not game.paused then 
+    love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
+  else
+    if math.sin(inter) > 0 then
+      love.graphics.printf(season[game.season].." "..game.year, 5, 5, 90, "right")
+    else 
+      love.graphics.printf("paused   ", 5, 5, 90, "right")
+    end
+  end
 
   love.graphics.setColor(255, 255, 255)
   love.graphics.print("Corn: "..math.floor(capitalist.fortune), 110, 5, 0, 1, 1, 0, 0)
@@ -415,6 +457,8 @@ end
 function land.handle_mouse(x, y, button, action)
   local tile_x = first_x + math.ceil( (offset_x + x) / tile_width)
   local tile_y = first_y + math.ceil( (offset_y + y - gui_shift) / tile_height)
+  local total_x = (first_x * tile_width) + offset_x + x
+  local total_y = (first_y * tile_height) + offset_y + y + gui_shift
 
   -- mouse release actions
   -- note that pressing the mouse can not move the map
@@ -431,7 +475,17 @@ function land.handle_mouse(x, y, button, action)
   if action == "pressed" and button == "l" then
     -- clicking on stuff selects it
     if land.map[tile_y] and land.map[tile_y][tile_x] and not(y > minimap_y - 20 and x > minimap_x) then
-      land.selected = land.map[tile_y][tile_x]
+      if land.selected and land.selected.discipline then land.selected = nil end
+      local selected_army = false
+      for i = 1, #game.regiments do
+        if total_x > game.regiments[i].loc[1] - 8 and total_x < game.regiments[i].loc[1] + 8 then
+          if total_y > game.regiments[i].loc[2] - 17 and total_y < game.regiments[i].loc[2] + 18 then
+            land.selected = game.regiments[i]
+            selected_army = true
+          end 
+        end 
+      end
+      if not selected_army then land.selected = land.map[tile_y][tile_x] end
     end
     -- clicking on the map modes activates/deactivates them
     if (y > minimap_y - 20 and x > minimap_x - 5) and (y < minimap_y and x < minimap_x + 15) then
@@ -455,12 +509,14 @@ function land.handle_mouse(x, y, button, action)
     end
   end
   -- right clicking erases everything
-  if action == "pressed" and button == "r" then
-    land.selected = nil
+  if action == "pressed" and button == "r" and not land.selected.discipline then
+    if land.selected and not land.selected.discipline then land.selected = nil end
     land.start_focus = nil
     land.end_focus = nil
     land.mode = nil
     focus_rect = nil
+  elseif action == "pressed" and button == "r" and land.selected.discipline then
+    land.selected.dest = {total_x, total_y}
   end
 end
 
@@ -495,8 +551,13 @@ function land.get_type( r, g, b )  -- alpha ignored, for now. idk what its purpo
 end
 
 -- obvs
-function land.get_tile( loc )
-  return land.map[loc[2]][loc[1]]
+-- "scale" tells the function to treat the values in loc as raw pixel values and not tile vaules (e.g. <545, 62> instead of <11, 2>)
+function land.get_tile( loc, scale )
+  if not scale then
+    return land.map[loc[2]][loc[1]]
+  else 
+    return land.map[math.ceil( (loc[2] - offset_y - tile_height) / tile_height)][math.ceil( (loc[1] - offset_x) / tile_height)]
+  end
 end
 
 -- also obvs

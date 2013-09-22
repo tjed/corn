@@ -2,6 +2,7 @@
 -- pl development 2013
 
 manor = { 	owner = nil,
+			t = "manor",
 			loc = {0, 0},
 			store = 0,
 			guards = 0}

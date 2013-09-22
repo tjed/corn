@@ -11,12 +11,16 @@ require "win"         -- its required
 require "capitalist"
 require "worker"
 require "farmer"
-require "landlord"    
+require "landlord" 
+
+require "regiment"   
 
 require "parliament"  -- where we go to debate lawes
 require "manor"       -- where landlords live and where their stash is
 require "town"        -- where pops (farmers) live
 require "field"       -- individual productive (agricultural) tiles
+require "garrison"    -- forts where regiments are at
+
 require "sraffian_model"
 
 --local profiler = require "ProFi" --debug
@@ -29,7 +33,7 @@ function love.load()
   tile_width = 50 -- the sprites i stole from the steel panthers website are 50x50. the real steel panthers sprites are super weird hex-based lbms
   tile_height = 50
 
-  current_map = 5 -- see /maps
+  current_map = 3 -- see /maps
   map_count = 0
 
   -- load all the gfx. 
@@ -59,7 +63,8 @@ function love.load()
   classes = { landlord =  love.graphics.newQuad(0, 0, 16, 35, 160, 35), 
               peasant =   love.graphics.newQuad(112, 0, 16, 35, 160, 35),
               capitalist =love.graphics.newQuad(48, 0, 16, 35, 160, 35),
-              worker =    love.graphics.newQuad(80, 0, 16, 35, 160, 35)
+              worker =    love.graphics.newQuad(80, 0, 16, 35, 160, 35),
+              soldier =   love.graphics.newQuad(96, 0, 16, 35, 160, 35)
             }
 
   -- todo: make an icon sheet

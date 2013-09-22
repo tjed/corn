@@ -2,6 +2,7 @@
 -- pl development 2013
 
 field = { 	fertility = 1,																-- what comes back when you plant
+			t = "field",																
 			manor = "n/a", 																-- the manor closest to the field, which in turn is owned by a landlord
 			worker = nil, 																-- who gets the wage
 			intensity = {k = 1/(2 + game.capital_tech), l = 1/(2 + game.labor_tech) }, 	-- I only buy organically composed capital

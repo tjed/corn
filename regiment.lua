@@ -3,8 +3,10 @@
 
 regiment = 	{ 	name = "",			-- name
 				loc = {},			-- precise location
+				dest = nil,			-- precise destination
+				last_move = 0,		-- time at which movement was last updated. 
 				discipline = 1,		-- ability to withstand damage, attack
-				speed = 1,			-- tiles per season
+				speed = 25,			-- pixels per second
 				attack = 1,			-- damage inflicted per successful attack
 				defense = 1,		-- ability to resist damage
 				in_supply = true
@@ -14,10 +16,34 @@ regiment.__index = regiment
 
 function regiment.new( loc )
 	o = {}
+	o.name = (#game.regiments + 1).." Regiment of Foot"
+	o.in_supply = true
+	o.discipline = 1
+	o.selected = false
+	o.loc = {loc[1] * tile_width - 30, loc[2] * tile_height + 10}
+	o.dest = nil
 	setmetatable(o, regiment)
+	table.insert(game.regiments, o)
 	return o
 end
 
-function regiment:update()
-	if not self.in_supply then self.discipline = self.discipline / 2 end
+-- update function, right now it only changes discipline and position
+-- this function is supposed to be called every second
+function regiment:update(dt)
+	if not game.paused then
+		if not self.in_supply then self.discipline = self.discipline * .999 end
+		if self.dest and ( not (math.abs(self.dest[1] - self.loc[1]) < 2) or not (math.abs(self.dest[2] - self.loc[2]) < 2) ) then
+			local length = math.sqrt( (self.dest[1] - self.loc[1])^2 + (self.dest[2] - self.loc[2])^2 )
+			local unit_vector = { (self.dest[1] - self.loc[1]) / length, (self.dest[2] - self.loc[2]) / length }
+			self.loc = { self.loc[1] + (unit_vector[1] * dt * self.speed), self.loc[2] + (unit_vector[2] * dt * self.speed) }
+		elseif self.dest and math.abs(self.dest[1] - self.loc[1]) < 10 and math.abs(self.dest[2] - self.loc[2]) < 10 then
+			self.dest = nil
+		end
+	end
+end
+
+-- takes a regiment
+-- finds out where its nearest garrison is, as in, where it's supposed to be based
+function regiment:nearest_garrison()
+
 end

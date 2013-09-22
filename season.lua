@@ -1,7 +1,7 @@
 -- corn by yarlesp
 -- pl development 2013
 
-season = {"Spring", "Summer", "Fall", "Winter" }  --change these values in future
+season = {"Spring", "Summer", "Fall", "Winter", length = {30, 30, 30, 30} }  --change these values in future
 
 function season.update() 
 	if game.season < 4 then
