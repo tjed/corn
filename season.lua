@@ -22,6 +22,9 @@ function season.update()
 	for i = 1, #game.towns do
 		game.towns[i]:update()
 	end
+	for i = 1, #game.garrisons do 
+		game.garrisons[i]:update()
+	end
 	--worker.update() --TODO
 	--sraffian_model.update()
 end

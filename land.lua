@@ -264,6 +264,7 @@ function land.draw_gui()
       love.graphics.print("Part of the estate of "..l.manor.owner.name, draw_x + (tile_width / 2) + 5, draw_y + (tile_height / 2) + 45, 0, 1, 1, 0, 0)
     elseif land.selected and land.selected.contains then
       love.graphics.print("barracks, "..#land.selected.contains.." regiment(s) based here", draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 5, 0, 1, 1, 0, 0)
+      love.graphics.print(land.selected.supplies.." supplies on hand", draw_x + (tile_width / 2)+ 5, draw_y + (tile_height / 2) + 35, 0, 1, 1, 0, 0)
     end
   elseif land.selected and land.selected.discipline then
     local l = land.selected
@@ -272,7 +273,8 @@ function land.draw_gui()
     love.graphics.setColor(0, 0, 0)
     love.graphics.setColor(255, 255, 255)
     love.graphics.print(l.name, draw_x - 30, draw_y + 35, 0, 1, 1, 0, 0)
-    love.graphics.print(land.get_tile(l.loc, true).t, draw_x - 30, draw_y + 55, 0, 1, 1, 0, 0)
+    love.graphics.print(l:is_in_supply().." for the season", draw_x - 30, draw_y + 75, 0, 1, 1, 0, 0)
+    love.graphics.print("in a "..land.get_tile(l.loc, true).t, draw_x - 30, draw_y + 55, 0, 1, 1, 0, 0)
   end
 
   love.graphics.setColor(0, 0, 0)
@@ -556,7 +558,7 @@ function land.get_tile( loc, scale )
   if not scale then
     return land.map[loc[2]][loc[1]]
   else 
-    return land.map[math.ceil( (loc[2] - offset_y - tile_height) / tile_height)][math.ceil( (loc[1] - offset_x) / tile_height)]
+    return land.map[math.ceil( (loc[2] - tile_height ) / tile_height)][math.ceil( (loc[1] ) / tile_width)]
   end
 end
 

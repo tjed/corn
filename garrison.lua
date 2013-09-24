@@ -18,6 +18,7 @@ function garrison.new(loc)
 	o.loc = loc
 	o.strength = 10
 	o.contains = {}
+	o.supplies = 10
 	table.insert(o.contains, regiment.new(loc) )
 	setmetatable(o, garrison)
 	return o
@@ -25,13 +26,17 @@ end
 
 -- called each season
 -- each season every garrison must send its units supplies
--- if a 
-function garrison:update()
-	for i = 1, #self.contains do 
-		if not math.sqrt( (self.contains[i].loc[1] - self.loc[1])^2 + (self.contains[i].loc[2] - self.loc[1])^2 ) < self.supply_radius then
+function garrison:update( dt )
+	for i = 1, #self.contains do
+		if ( math.sqrt( (self.contains[i].loc[1] - (self.loc[1] * 50))^2 + (self.contains[i].loc[2] - (self.loc[2] * 50))^2 ) < self.supply_radius * tile_height ) then
 			if self.supplies > 1 then 
 				self.supplies = self.supplies - 1
+				self.contains[i].in_supply = true
+			else 
+				self.contains[i].in_supply = false
 			end
+		else
+			self.contains[i].in_supply = false
 		end
 	end
 end

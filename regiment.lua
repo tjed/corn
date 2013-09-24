@@ -29,7 +29,7 @@ end
 
 -- update function, right now it only changes discipline and position
 -- this function is supposed to be called every second
-function regiment:update(dt)
+function regiment:update( dt )
 	if not game.paused then
 		if not self.in_supply then self.discipline = self.discipline * .999 end
 		if self.dest and ( not (math.abs(self.dest[1] - self.loc[1]) < 2) or not (math.abs(self.dest[2] - self.loc[2]) < 2) ) then
@@ -46,4 +46,9 @@ end
 -- finds out where its nearest garrison is, as in, where it's supposed to be based
 function regiment:nearest_garrison()
 
+end
+
+function regiment:is_in_supply()
+	if self.in_supply then return "In supply" 
+	else return "Not in supply" end
 end

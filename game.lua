@@ -50,7 +50,7 @@ function game.update( dt )
 	if game.state == 2 then
 		land.update( dt )
 		for i = 1, #game.regiments do 
-			game.regiments[i]:update(dt)
+			game.regiments[i]:update( dt )
 		end
 	elseif game.state == 0 then
 		splash.update( dt )
