@@ -16,7 +16,14 @@ regiment.__index = regiment
 
 function regiment.new( loc )
 	o = {}
-	o.name = (#game.regiments + 1).." Regiment of Foot"
+	nameSuffix = ""
+	nameSuffix = nameSuffix..(#game.regiments + 1)
+	nameSuffix = nameSuffix:sub(-1)
+	if	nameSuffix == "1" then nameSuffix = "st" elseif
+		nameSuffix == "2" then nameSuffix = "nd" elseif
+		nameSuffix == "3" then nameSuffix = "rd" else nameSuffix = "th"
+	end
+	o.name = (#game.regiments + 1)..nameSuffix.." Regiment of Foot"
 	o.in_supply = true
 	o.discipline = 1
 	o.selected = false
